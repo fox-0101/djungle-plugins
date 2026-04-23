@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "djungle-agent-os": {
+      "type": "http",
+      "url": "https://agent-os-v2-git-main-alessandronasi1984-8052s-projects.vercel.app/mcp",
+      "headers": {
+        "Authorization": "Bearer ${DJUNGLE_API_KEY}",
+        "X-User-Id": "${DJUNGLE_USER_ID}"
+      }
+    }
+  }
+}
