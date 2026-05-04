@@ -10,7 +10,7 @@
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
       "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory via multi-tenant MCP server.",
-      "version": "2.0.0",
+      "version": "3.0.0",
       "author": { "name": "Djungle" },
       "keywords": ["agents", "notion", "agent-os", "djungle", "mcp"]
     }

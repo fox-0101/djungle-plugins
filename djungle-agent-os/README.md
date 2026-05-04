@@ -1,6 +1,6 @@
 # Djungle Agent OS
 
-Connetti Claude ai tuoi agenti AI. Ogni agente ha la sua personalita, le sue competenze, la sua memoria — e migliora ad ogni sessione.
+Connetti Claude ai tuoi agenti AI. Ogni agente ha la sua personalità, le sue competenze, la sua memoria — e migliora ad ogni sessione.
 
 ## Come funziona
 
@@ -25,26 +25,29 @@ Chiudi una sessione e salva tutto. Dici "writeback" o "salva sessione" e il sist
 - "wb"
 - "salva sessione"
 
+## Setup (zero terminale)
+
+1. **Installa il plugin** dal marketplace `fox-0101/djungle-plugins` su Claude Desktop / Cowork.
+2. **Apri Customize → Plugin personali → Djungle agent os → Connettori → Installa** sul connettore `djungle-agent-os`.
+3. Il browser si apre sulla pagina di login Djungle. Inserisci la tua email aziendale.
+4. Apri la mail "Il tuo link di accesso a Djungle Agent OS" e clicca il pulsante.
+5. Sei loggato. Torna su Claude e dì "attiva Dean" per provare.
+
+L'autenticazione avviene via magic link: niente password, niente API key da copiare. Il token resta valido finché non fai logout o non scade (~30 giorni con refresh automatico).
+
 ## Requisiti
 
-- **Claude con Cowork** — Il plugin funziona su Claude desktop con Cowork attivo
-- **Credenziali Djungle** — Una API key (identifica il tuo tenant) + uno User ID (identifica te come membro del tenant). Entrambe vengono fornite quando attivi l'accesso agli agenti.
-
-## Setup
-
-1. Installa il plugin su Claude Cowork
-2. Esporta le due variabili d'ambiente nel tuo shell **prima** di avviare Claude:
-
-   ```bash
-   export DJUNGLE_API_KEY="<la tua API key>"
-   export DJUNGLE_USER_ID="<il tuo User ID, UUID>"
-   ```
-
-   Oppure aggiungile in modo permanente al tuo `~/.zshrc` / `~/.bashrc`.
-3. Avvia Claude Cowork e dici "invoca [nome agente]". Sei operativo.
+- **Account Djungle attivo** — l'email che usi al login deve essere registrata da Djungle Startup Studio come membro di un tenant.
+- Se non hai ancora un account, contattaci.
 
 ## Troubleshooting
 
-- **"401 Unauthorized" / "Invalid API key"** — Le env vars non sono settate o il token è vecchio. Controlla `echo $DJUNGLE_API_KEY` in un terminale e assicurati che Claude sia stato lanciato dopo l'export.
-- **"Agent not found"** — Nome sbagliato. Di' "quali agenti ho?" per la lista.
-- **Nessuna risposta / timeout** — Controllo salute del server: `curl https://agent-os-v2-git-main-alessandronasi1984-8052s-projects.vercel.app/mcp/health` deve tornare `{"ok":true,...}`.
+- **"Nessuna membership attiva"** dopo il login → la tua email non è registrata. Contatta Djungle.
+- **Email non arriva** → controlla spam. L'invio passa per `noreply@djungle.io` via Resend.
+- **Pagina login dice "Sessione scaduta"** → il flow OAuth ha un TTL di 15 minuti. Ricomincia dall'install connettore.
+- **`attiva [nome]` non triggera** → controlla che il plugin sia attivo: Customize → Plugin personali → Djungle agent os → status verde.
+- **Server in errore** → `curl https://agent-os-v2-git-main-alessandronasi1984-8052s-projects.vercel.app/health` deve tornare `{"ok":true,...}`.
+
+## Versione
+
+v3.0.0 — OAuth 2.1 + magic link (zero env vars). Vedi [CHANGELOG](https://github.com/fox-0101/djungle-plugins/releases) per lo storico.
