@@ -91,4 +91,5 @@ Evoluzione: [Si/No]
 - Write in Italian for content, English for tool parameter values (`type: "learning"` not `"apprendimento"`)
 - The session summary is the single source of truth — be accurate, not flattering
 - Cross-posting to Memory Logs is selective — quality over quantity
-- If the MCP server returns 401 / is not connected, tell the user to check `DJUNGLE_API_KEY` and `DJUNGLE_USER_ID` env vars
+- If the MCP server returns 401 / is not connected, the OAuth session expired. Tell the user to **disconnect and reconnect the connector** from Customize → Plugin → Connectors → Djungle agent os; the magic-link flow will re-authenticate in <1 minute. *No environment variables involved* in v3+.
+- If `session_id` is unknown (the user invoked the agent outside of this Cowork session, e.g. on Notion v1), skip step 3 and only write `write_memory_log` entries — they are independent of sessions.
