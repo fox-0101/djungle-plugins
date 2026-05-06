@@ -73,13 +73,17 @@ User asks "quali agenti", "lista agenti": call `list_agents()` — only entry po
 
 ## Filesystem mirror (optional, Cowork desktop / Claude Code)
 
-If you have filesystem access AND the activated agent (or the user) creates a handoff via `create_handoff(...)`, the response includes `file_path` (relative) and `mirror_content` (full markdown). Write it to disk under the standard Claude documents folder:
+If you have filesystem access AND the activated agent (or the user) creates a handoff via `create_handoff(...)`, the response includes `file_path` (relative) and `mirror_content` (full markdown). Write it to disk under the standard Claude documents folder.
+
+**CRITICAL — path is absolute from `$HOME`, never relative to cwd**:
 
 ```
-~/Documents/Claude/[tenant_slug]-context/handoffs/<file_path basename>
+~/Documents/Claude/<tenant_slug>-context/<file_path>
 ```
 
-The `tenant_slug` comes from the server (`base_path_hint` in `sync_local_mirror` response, or ask once). **Bootstrap the directory the first time** the user creates a handoff — if `~/Documents/Claude/[tenant_slug]-context/` does not exist, create it together with `handoffs/` subdir before writing the file. Do NOT recreate the parent `~/Documents/Claude/` (it should always exist on a Mac with Claude installed).
+- `<tenant_slug>` = the value returned by the server (e.g. `djungle`). NOT the name of the Cowork project you have open. NOT inferred from cwd. Call `sync_local_mirror` once to read `base_path_hint` if unsure.
+- The parent `~/Documents/Claude/` already exists from Claude Desktop install — don't recreate it.
+- Bootstrap `<tenant_slug>-context/` (with `handoffs/`, `decisions/`, `theses/`, `librarian-reports/`, `inbox/`, `archive/` + `README.md`) only the first time it's missing.
 
 ```
 ~/Documents/Claude/[tenant_slug]-context/

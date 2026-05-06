@@ -51,7 +51,11 @@ Response:
 
 ### 3. Bootstrap directory
 
-The parent `~/Documents/Claude/` is the standard Claude documents folder on macOS — it exists by default after Claude Desktop install. Do NOT recreate it.
+**CRITICAL — absolute path from `$HOME`, never from cwd**:
+
+- The destination is **always** `os.path.expanduser('~/Documents/Claude/<tenant_slug>-context/')`. It is NOT relative to your current working directory. It is NOT inside `Projects/`. It is NOT named after the Cowork project you have open.
+- `<tenant_slug>` = the value of `tenant_slug` returned by `sync_local_mirror` itself (or look at `base_path_hint`). For Djungle it's literally `djungle`. Do NOT guess from project names.
+- The parent `~/Documents/Claude/` already exists by default after Claude Desktop install — do NOT recreate it.
 
 If `~/Documents/Claude/[tenant_slug]-context/` doesn't exist:
 

@@ -65,9 +65,19 @@ Response includes:
 
 If filesystem access is available (Cowork desktop or Claude Code):
 
-1. Resolve `~/Documents/Claude/[tenant_slug]-context/`. The parent `~/Documents/Claude/` already exists (default Claude Desktop folder) — don't recreate it. If `[tenant_slug]-context/` is missing, **bootstrap it**: create the dir + subdirs `handoffs/`, `decisions/`, `theses/`, `librarian-reports/`, `inbox/`, `archive/` + a `README.md`.
-2. Write `mirror_content` to `~/Documents/Claude/[tenant_slug]-context/<file_path>`. Use `file_path` as-is (relative).
-3. If writing fails (permission, disk full), log a warning to the user but don't break — DB is canonical.
+**CRITICAL — path resolution rules**:
+
+- The destination is **always absolute**, anchored to `$HOME` (the user's macOS home directory). It is **NEVER** relative to your current working directory, NEVER inside `Projects/`, NEVER guessed from the project name you happen to have open.
+- The `[tenant_slug]` is **always** the value of `tenant_slug` returned by the server in `sync_local_mirror`'s `base_path_hint` (or by reading the `code` prefix on the tenant). For Djungle it is literally `djungle` — not the name of the Cowork project.
+- If you don't have the tenant_slug from the response, call `sync_local_mirror({types:["handoffs"]})` once to read it from `base_path_hint`. Do NOT infer it from cwd or filename.
+
+Steps:
+
+1. Compute the absolute target: `os.path.expanduser('~/Documents/Claude/<tenant_slug>-context/')` — for Djungle: `~/Documents/Claude/djungle-context/`.
+2. The parent `~/Documents/Claude/` already exists (default Claude Desktop folder). Don't recreate it.
+3. If `<tenant_slug>-context/` is missing, **bootstrap it**: create the dir + subdirs `handoffs/`, `decisions/`, `theses/`, `librarian-reports/`, `inbox/`, `archive/` + a `README.md`.
+4. Write `mirror_content` to `~/Documents/Claude/<tenant_slug>-context/<file_path>`. Use `file_path` (the relative path returned by the server, e.g. `handoffs/2026-05-12-...md`) as-is.
+5. If writing fails (permission, disk full), log a warning to the user but don't break — DB is canonical.
 
 If no filesystem access (mobile, web), skip silently.
 
