@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "3.2.0",
-  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.2.0 adds initiative-centered context: SOTA store, resolver, classifier, context probe.",
+  "version": "3.2.1",
+  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.2.1: writeback propaga initiative_id ai memory_logs/handoff e propone aggiornamenti SOTA dal summary (last_3_moves, decisions_log, open_loops).",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"
