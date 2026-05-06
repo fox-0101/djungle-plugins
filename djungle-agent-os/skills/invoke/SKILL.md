@@ -73,16 +73,16 @@ User asks "quali agenti", "lista agenti": call `list_agents()` — only entry po
 
 ## Filesystem mirror (optional, Cowork desktop / Claude Code)
 
-If you have filesystem access AND the activated agent (or the user) creates a handoff via `create_handoff(...)`, the response includes `file_path` (relative) and `mirror_content` (full markdown). Write it to disk:
+If you have filesystem access AND the activated agent (or the user) creates a handoff via `create_handoff(...)`, the response includes `file_path` (relative) and `mirror_content` (full markdown). Write it to disk under the standard Claude documents folder:
 
 ```
-~/[tenant_slug]-context/handoffs/<file_path basename>
+~/Documents/Claude/[tenant_slug]-context/handoffs/<file_path basename>
 ```
 
-The `tenant_slug` comes from the user's tenant — derive it from the agent_os response or ask once. Bootstrap the directory if it doesn't exist:
+The `tenant_slug` comes from the server (`base_path_hint` in `sync_local_mirror` response, or ask once). **Bootstrap the directory the first time** the user creates a handoff — if `~/Documents/Claude/[tenant_slug]-context/` does not exist, create it together with `handoffs/` subdir before writing the file. Do NOT recreate the parent `~/Documents/Claude/` (it should always exist on a Mac with Claude installed).
 
 ```
-~/[tenant_slug]-context/
+~/Documents/Claude/[tenant_slug]-context/
 ├── handoffs/
 ├── decisions/   (v3.2.0+)
 ├── theses/      (v3.2.0+)
