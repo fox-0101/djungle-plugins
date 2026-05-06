@@ -65,8 +65,8 @@ Response includes:
 
 If filesystem access is available (Cowork desktop or Claude Code):
 
-1. Resolve `~/[tenant_slug]-context/` (bootstrap if missing — create `handoffs/`, `decisions/`, `theses/`, `librarian-reports/`, `inbox/`, `archive/` + `README.md`).
-2. Write `mirror_content` to `~/[tenant_slug]-context/<file_path>`. Use `file_path` as-is (relative).
+1. Resolve `~/Documents/Claude/[tenant_slug]-context/`. The parent `~/Documents/Claude/` already exists (default Claude Desktop folder) — don't recreate it. If `[tenant_slug]-context/` is missing, **bootstrap it**: create the dir + subdirs `handoffs/`, `decisions/`, `theses/`, `librarian-reports/`, `inbox/`, `archive/` + a `README.md`.
+2. Write `mirror_content` to `~/Documents/Claude/[tenant_slug]-context/<file_path>`. Use `file_path` as-is (relative).
 3. If writing fails (permission, disk full), log a warning to the user but don't break — DB is canonical.
 
 If no filesystem access (mobile, web), skip silently.
@@ -109,5 +109,5 @@ Returns timeline with `change_type`, `changed_by`, `ts`, `diff_summary`.
 
 - ❌ Don't create a handoff without an explicit destination agent — always confirm.
 - ❌ Don't fabricate body content — ask the user or active agent for the brief.
-- ❌ Don't write the file mirror to a custom path — always `~/[tenant_slug]-context/<file_path>`.
+- ❌ Don't write the file mirror to a custom path — always `~/Documents/Claude/[tenant_slug]-context/<file_path>`.
 - ❌ Don't bypass `create_handoff` and write directly to the filesystem — DB is canonical.

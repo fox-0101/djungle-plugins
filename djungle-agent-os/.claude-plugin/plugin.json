@@ -1,6 +1,6 @@
 {
   "name": "djungle-agent-os",
-  "version": "3.1.1",
+  "version": "3.1.2",
   "description": "Connect Claude to the Djungle Agent OS — multi-tenant MCP server. Invoke AI agents with unique personalities, knowledge, and memory. Built by Djungle Startup Studio.",
   "author": {
     "name": "Djungle",
