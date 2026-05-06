@@ -4,20 +4,23 @@ description: |
   Invoke an AI agent from the Djungle Agent OS. Use this skill whenever the user says "invoke [agent name]", "attiva [agent name]", "carica [agent name]", "usa [agent name]", or any variation of loading/activating/starting an agent. Also trigger when the user mentions an agent by name (like "Dean", "Lora", "Focus", "Iron", "Spacey", "Set", "Doc", "Vince", "Bookey") in the context of wanting to work with it, or asks to "start a session with [agent]", "talk to [agent]", "switch to [agent]", or "fammi parlare con [agent]". This skill connects to the Djungle Agent OS MCP server to fetch agent data and run the pre-flight protocol.
 ---
 
-# Invoke — Agent OS Loader (v3.1.0)
+# Invoke — Agent OS Loader (v3.2.0)
 
-Load an AI agent into the current conversation via the Djungle Agent OS MCP server, with **pre-flight protocol** and **pending handoff handling**.
+Load an AI agent with **pre-flight protocol**, **pending handoff handling**, and **initiative resolution + context probe** (v3.2.0+).
 
 ## CRITICAL — Use ONLY `invoke_agent`
 
-To activate an agent use **`invoke_agent`** as a single atomic call. **Do NOT decompose into `get_agent` + `create_session`.** `invoke_agent` v3.1.0 returns:
+Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_agent` + `create_session` + `resolve_initiative` + `probe_initiative_context`. The server orchestrates the whole flow.
+
+`invoke_agent` (v3.2.0) returns:
 
 - `agent_id`, `name`, `role`, `system_prompt`
-- `session_id`, `session_code` — needed by `writeback` skill
-- **`pending_handoffs[]`** — handoffs directed at this agent waiting to be processed
-- **`preflight_status: 'ok'`** — server-side preflight signal
-
-If you split it, `session_id` becomes orphan, `pending_handoffs` are not auto-loaded, and the writeback flow misalignes.
+- `session_id`, `session_code` — needed by `writeback` skill (saved into the conversation context)
+- `pending_handoffs[]` — handoffs directed at this agent
+- `preflight_status: 'ok'`
+- **`resolved_initiative`** — `{id, slug, name}` if the user mentioned an initiative, else null
+- **`probe_payload`** — full context (SOTA, recent_sessions, pending_handoffs, references, carenze_detected) when resolved_initiative is set
+- **`dialog_required`** — true if the resolver needs a user choice (ambiguous match or new-initiative classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
 
 ## Step-by-step
 
@@ -33,11 +36,44 @@ If absent, note it: at activation time, mention "non vedo CLAUDE.md, vuoi che ti
 
 If filesystem is not accessible (mobile, web), skip silently — the agent runs without project context (the MOD-preflight-check module on the agent prompt handles soft mode).
 
+### 2.5. Initiative resolution (v3.2.0+)
+
+**Extract the initiative the user wants to work on**, if any. Patterns to recognize:
+
+- "lavoriamo su X" / "let's work on X"
+- "su X" come tail della frase ("invoke Dean su Storytelling AI")
+- "il progetto X" / "the project X"
+- "X" tra virgolette o in maiuscolo dopo l'agent name
+- "comunicazione del Y" → riferimento implicito a Y
+
+If found, pass it as `initiative_input` (free text, NOT a slug — the server resolves).
+
+If no clear initiative is mentioned, omit `initiative_input` and the agent runs without initiative context. That's fine — the user can switch later with `/sota <slug>` or by referencing it in the next prompt.
+
 ### 3. Call `invoke_agent` (single call)
 
 ```
-invoke_agent({ agent_name: "Dean" })
+invoke_agent({ agent_name: "Dean", initiative_input: "Storytelling AI" })
 ```
+
+### 3.5. Handle the resolver dialog (if any)
+
+If `result.dialog_required === true`:
+
+- `dialog_payload.kind === 'ambiguous'` → show the candidates from `dialog_payload.options[]` (slug, name, reason). Ask user to pick. Re-call `invoke_agent({agent_name, initiative_input: <chosen-slug>})`.
+- `dialog_payload.kind === 'confirm'` → ask "È <name> (<slug>)?" Yes → re-call with that slug. No → ask user what they meant.
+- `dialog_payload.kind === 'not_found_with_classifier'` → the classifier suggested it might be a new initiative. Show its message + classifier reasoning. If user says "yes, create it", call `create_initiative({slug, name, type, domain_slug})` first, then re-call invoke_agent with the new slug.
+- `dialog_payload.kind === 'not_found_no_match'` → no match and no classifier insight. Ask user if they want to skip (re-call `invoke_agent` without `initiative_input`) or create a new initiative manually.
+
+**Do not adopt the agent identity until the dialog is resolved.** No session is created during dialog turns.
+
+### 3.6. Probe payload injection (when resolved)
+
+If `result.probe_payload` is non-null:
+
+- It contains `initiative` (full row), `domain`, `sota[]` (canonical sections), `recent_sessions[]`, `pending_handoffs[]`, `recent_memory_logs[]`, `references[]` (related initiatives with current_state snippet), `carenze_detected[]` (4 types: missing_sota_section, stale_initiative, open_loop_old, missing_kpi).
+- Inject it into the agent's working memory as a "Initiative Context" block prepended to the conversation, after CLAUDE.md and before the user's task.
+- If `carenze_detected[]` has entries with severity `warning`, the agent SHOULD mention them in 1 line ("vedo open_loop X aperto da N giorni") before proceeding to the task. The MOD-preflight-check Notion module handles this — just pass the carenze through.
 
 ### 4. Surface pending handoffs (if any)
 
