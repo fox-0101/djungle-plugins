@@ -1,12 +1,12 @@
 ---
 name: handoff
 description: |
-  Create an explicit inter-agent handoff in the Djungle Agent OS. Trigger this skill when the user says "/handoff", "passa a [agent]", "manda un brief a [agent]", "crea un handoff per [agent]", "/handoff [agent]", or any variation of explicitly forwarding context to another agent. This skill calls `create_handoff` MCP tool, persists the handoff in the tenant DB, and writes a markdown mirror to the local filesystem when available.
+  Create an explicit inter-agent handoff in the Djungle Agent OS. Trigger this skill when the user says "/handoff", "passa a [agent]", "manda un brief a [agent]", "crea un handoff per [agent]", "/handoff [agent]", or any variation of explicitly forwarding context to another agent. This skill calls `create_handoff` MCP tool, persists the handoff in the tenant DB, and writes a markdown mirror to the local filesystem when available. v3.2.2: forza from_agent = session.agent_id (no più "scelta narrativa"), propaga session_id + initiative_id automaticamente, hard-guard sul path mirror.
 ---
 
-# Handoff — Inter-agent message (v3.1.0)
+# Handoff — Inter-agent message (v3.2.2)
 
-Create a structured handoff from the **currently active agent** (or from the user, if no agent is active) to one or more other agents in the same tenant. The receiving agent will see it in their `pending_handoffs[]` at the next `invoke_agent` call.
+Create a structured handoff from the **currently active agent in this session** (NEVER a "narratively chosen" different agent) to one or more other agents in the same tenant. The receiving agent will see it in their `pending_handoffs[]` at the next `invoke_agent` call.
 
 ## When to trigger
 
@@ -16,108 +16,164 @@ Create a structured handoff from the **currently active agent** (or from the use
 
 ## Step-by-step
 
-### 1. Identify destination agent(s)
+### 1. Recover the active session context
 
-Extract from the user's message: which agent(s) should receive the handoff. Use `list_agents()` to validate names. Multiple destinations are OK (max 10).
+From the conversation (the `invoke_agent` response payload at session start), recover **MANDATORY**:
 
-### 2. Identify the source agent
+- `session.id` (UUID) — `session_id` returned by `invoke_agent`
+- `session.agent_id` (e.g. `AGT-3`) — the agent that was invoked
+- `session.initiative_id` (UUID, v3.2.0+) — `resolved_initiative.id` from the invoke payload, if present (null if no `initiative_input` was passed)
+- `tenant_slug` — for Djungle this is literally `djungle` (NOT the Cowork project name, NOT cwd)
 
-The `from_agent` is:
-- The currently active agent in this conversation (preferred), OR
-- If no agent is active, ask the user which agent is sending it (or default to the requested context).
+If the user is invoking `/handoff` outside of an active agent session (e.g. directly in a chat without prior `/invoke`), STOP and ask: *"Quale agente sta mandando l'handoff? Devo invocarlo prima."* — then proceed only after `/invoke` has been done.
 
-`from_agent` and `to_agents[]` use `agent_id` format like `AGT-3`, NOT names.
+### 2. Identify destination agent(s)
+
+Extract from the user's message which agent(s) should receive the handoff. Use `list_agents()` to validate names. Multiple destinations OK (max 10).
+
+`to_agents[]` use `agent_id` format (`AGT-N`), NOT names.
 
 ### 3. Compose the handoff
 
-Ask the user (or extract from context) the following fields:
+Ask the user (or extract from context):
 
-- **`topic`** (1 line, ≤200 chars): subject line of the handoff
-- **`body`** (markdown, ≤20000 chars): full content — what to pass, why, what's needed
-- **`priority`**: `low` | `normal` (default) | `high` | `urgent` — surface as a question if non-obvious
-- **`expires_in_days`** (optional): if the handoff is time-sensitive, suggest a sensible default (e.g. 7) and confirm
-- **`session_id`** (optional, automatic): if the active agent has a `session_id`, pass it
-- **`initiative_slug`** (optional, v3.2.0+): leave NULL in v3.1.0
+- **`topic`** (≤200 char) — subject line
+- **`body`** (markdown, ≤20000 char) — full brief: what to pass, why, what's needed
+- **`priority`**: `low` | `normal` (default) | `high` | `urgent` — chiedi se non ovvio
+- **`expires_in_days`** (opzionale) — se time-sensitive, suggerisci 7 e conferma
 
-If the user gave only a high-level instruction ("manda un brief a Lora sul pricing"), draft the `topic` and `body` yourself and ask for confirmation before submitting.
+If the user gave only a high-level instruction ("manda un brief a Lora sul pricing"), draft `topic` + `body` yourself, then **show to user** for confirmation before submitting.
 
-### 4. Call `create_handoff`
+### 4. Call `create_handoff` — PARAMETRI FORZATI v3.2.2
 
 ```
 create_handoff({
-  from_agent: "AGT-3",
+  from_agent: "<session.agent_id>",         // FORZATO — vedi sotto
   to_agents: ["AGT-2"],
   topic: "Brief copy investor pitch",
   body: "...",
   priority: "high",
-  session_id: "<active session uuid if any>",
+  session_id: "<session.id>",                // FORZATO se sessione attiva
+  initiative_slug: "<resolved-slug>",        // FORZATO se session.initiative_id
   expires_in_days: 7
 })
 ```
 
-Response includes:
-- `id`, `code` (e.g. `HND-0042`)
-- `file_path` (e.g. `handoffs/2026-05-12-1430-vince-to-lora-investor-pitch.md`)
+> **`from_agent` è SEMPRE `session.agent_id`. Punto.** Niente "scelta narrativa" tipo "Iron come vettore strategico verso Set". Se la sessione attiva è con Set (AGT-6), `from_agent = "AGT-6"`. Se l'agente attivo NEL CONTENUTO ragiona dal punto di vista di un altro agente, è una scelta del **body** (firma narrativa), non del FK `from_agent_id` del record. Il record dichiara fattualmente chi ha generato l'handoff durante la session.
+>
+> **Bug v3.2.0/v3.2.1** (HND-0006/0007/0008): la skill permetteva di scegliere `from_agent` ≠ `session.agent_id` "se narrativamente più appropriato". Generava handoff con attribution falsa. Tracciabilità rotta. Mai più.
+>
+> **`session_id` è SEMPRE valorizzato** se esiste una sessione attiva. Senza session_id l'handoff è orfano: non puoi rintracciarlo dal session log, non puoi linkare audit, perdi causalità.
+>
+> **`initiative_slug` è SEMPRE valorizzato** se `session.initiative_id` non è null. Il server fa il lookup slug da uuid. Senza initiative_slug il Probe non vede l'handoff in `recent_handoffs` dell'iniziativa — knowledge persa per quella iniziativa.
+
+Response include:
+- `id`, `code` (es. `HND-0042`)
+- `file_path` (es. `handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md`) — **path RELATIVO**
 - `content_hash` (sha256)
-- `mirror_content` (full markdown with YAML frontmatter)
+- `mirror_content` (markdown completo con YAML frontmatter)
 
-### 5. Write the filesystem mirror (best-effort)
+### 5. Write the filesystem mirror — HARD GUARD v3.2.2
 
-If filesystem access is available (Cowork desktop or Claude Code):
+**Solo se filesystem access disponibile** (Cowork desktop, Claude Code). Su mobile/web, skip silently.
 
-**CRITICAL — path resolution rules**:
+#### 5.a — Compute absolute path (HARD GUARD)
 
-- The destination is **always absolute**, anchored to `$HOME` (the user's macOS home directory). It is **NEVER** relative to your current working directory, NEVER inside `Projects/`, NEVER guessed from the project name you happen to have open.
-- The `[tenant_slug]` is **always** the value of `tenant_slug` returned by the server in `sync_local_mirror`'s `base_path_hint` (or by reading the `code` prefix on the tenant). For Djungle it is literally `djungle` — not the name of the Cowork project.
-- If you don't have the tenant_slug from the response, call `sync_local_mirror({types:["handoffs"]})` once to read it from `base_path_hint`. Do NOT infer it from cwd or filename.
+Pseudocode:
 
-Steps:
+```python
+import os
+HOME = os.path.expanduser("~")              # es. /Users/alessandronasi
+TENANT = "djungle"                          # per Djungle, sempre questo
+BASE = os.path.join(HOME, "Documents", "Claude", f"{TENANT}-context")
+ABS_PATH = os.path.join(BASE, file_path)    # file_path è relativo da server
 
-1. Compute the absolute target: `os.path.expanduser('~/Documents/Claude/<tenant_slug>-context/')` — for Djungle: `~/Documents/Claude/djungle-context/`.
-2. The parent `~/Documents/Claude/` already exists (default Claude Desktop folder). Don't recreate it.
-3. If `<tenant_slug>-context/` is missing, **bootstrap it**: create the dir + subdirs `handoffs/`, `decisions/`, `theses/`, `librarian-reports/`, `inbox/`, `archive/` + a `README.md`.
-4. Write `mirror_content` to `~/Documents/Claude/<tenant_slug>-context/<file_path>`. Use `file_path` (the relative path returned by the server, e.g. `handoffs/2026-05-12-...md`) as-is.
-5. If writing fails (permission, disk full), log a warning to the user but don't break — DB is canonical.
+# HARD GUARD #1 — l'absolute path DEVE iniziare con $HOME/Documents/Claude/
+assert ABS_PATH.startswith(os.path.join(HOME, "Documents", "Claude") + os.sep), \
+    f"Mirror path NOT anchored to ~/Documents/Claude/: {ABS_PATH}"
 
-If no filesystem access (mobile, web), skip silently.
+# HARD GUARD #2 — non devi mai trovarti in $HOME/Documents/handoffs/ o $HOME/handoffs/
+forbidden = [
+    os.path.join(HOME, "Documents", "handoffs"),
+    os.path.join(HOME, "handoffs"),
+]
+for f in forbidden:
+    assert not ABS_PATH.startswith(f + os.sep), \
+        f"Mirror path landed in forbidden location: {ABS_PATH}"
+```
+
+#### 5.b — Bootstrap dir if missing
+
+```python
+os.makedirs(BASE, exist_ok=True)
+for sub in ["handoffs","decisions","theses","librarian-reports","inbox","archive"]:
+    os.makedirs(os.path.join(BASE, sub), exist_ok=True)
+# (eventuale README.md alla radice se manca)
+```
+
+`~/Documents/Claude/` esiste sempre (creato da Claude Desktop install). NON ricrearlo.
+
+#### 5.c — Write the file
+
+Scrivi `mirror_content` (la stringa restituita da `create_handoff`) in `ABS_PATH`. UTF-8.
+
+#### 5.d — Verify
+
+Subito dopo il write, verifica che il file esiste **al path absolute corretto**:
+
+```python
+assert os.path.isfile(ABS_PATH), f"Write claimed success but file missing: {ABS_PATH}"
+# Anche: file size > 0
+assert os.path.getsize(ABS_PATH) > 0, "Mirror file empty"
+```
+
+Se uno dei guard fallisce → **rollback intenzione**: NON dire all'utente "scritto" — dire "DB ok, mirror filesystem fallito (path guard)" + log esatto path tentato.
+
+> **Bug v3.1.x e v3.2.0** ricorrente: la skill scriveva `mirror_content` su `file_path` raw (es. `handoffs/2026-...md`), che diventava `$CWD/handoffs/2026-...md`. Se cwd era `~/Documents/`, il file finiva in `~/Documents/handoffs/` invece di `~/Documents/Claude/djungle-context/handoffs/`. Il guard `startswith($HOME/Documents/Claude/)` cattura questo errore prima del write.
 
 ### 6. Confirm to user
 
 ```
 Handoff HND-0042 creato.
-Da Vince → a Lora · priority high
-Topic: Brief copy investor pitch
-File mirror: handoffs/2026-05-12-1430-vince-to-lora-investor-pitch.md ✓ scritto
-            (oppure: mirror non scritto — solo DB)
-Lora lo riceverà alla prossima invocazione.
+  Da Vince (AGT-3) → a Lora (AGT-2) · priority high · expires 19/05/2026
+  Linked a session SES-INV-... e initiative bp-djungle-holding-2026.
+  Topic: Brief copy investor pitch
+  Mirror: ~/Documents/Claude/djungle-context/handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md ✓
+  Lora lo riceverà in pending_handoffs[] alla prossima /invoke lora.
 ```
+
+Se `session_id` non disponibile (rara): segnalare esplicitamente "handoff orfano dalla session — solo DB".
+Se `initiative_id` non disponibile: segnalare "non linkato a iniziativa — non apparirà in /probe".
+Se mirror fallito: segnalare path tentato + ragione.
 
 ## Listing existing handoffs
 
-If the user asks "che handoff ho pendenti?" / "list handoff":
-- For a specific agent: `list_pending_handoffs({to_agent: "AGT-2"})`
-- All summary view: not yet exposed as a single tool — list per agent or wait for v3.2.0 dashboard
+Se l'utente chiede "che handoff ho pendenti?" / "list handoff":
+
+- Per agente specifico: `list_pending_handoffs({to_agent: "AGT-2"})`
 
 ## Inspecting history
-
-If the user asks "chi ha modificato HND-N?" or "history dell'handoff":
 
 ```
 get_handoff_history({ handoff_id: "<uuid>" })
 ```
 
-Returns timeline with `change_type`, `changed_by`, `ts`, `diff_summary`.
+Returns timeline `change_type`, `changed_by`, `ts`, `diff_summary`.
 
 ## Error handling
 
-- **Agent name not found** → suggest valid agents via `list_agents`.
-- **Body too long (>20k chars)** → ask user to split into multiple handoffs or summarize.
+- **Agent name not found** → `list_agents` per suggerire validi.
+- **Body too long (>20k char)** → split in più handoff o summarize.
 - **401** → disconnect+reconnect connector (OAuth flow).
-- **Filesystem write fails** → log warning, don't block (DB write is the source of truth).
+- **Filesystem write fails** o **path guard fails** → log warning specifico, NON dire "scritto", DB resta canonical.
 
 ## What NOT to do
 
-- ❌ Don't create a handoff without an explicit destination agent — always confirm.
-- ❌ Don't fabricate body content — ask the user or active agent for the brief.
-- ❌ Don't write the file mirror to a custom path — always `~/Documents/Claude/[tenant_slug]-context/<file_path>`.
-- ❌ Don't bypass `create_handoff` and write directly to the filesystem — DB is canonical.
+- ❌ **NON inventare un `from_agent` diverso da `session.agent_id`.** Mai. Anche se "narrativamente sembrerebbe più appropriato". L'attribution è fattuale, non narrativa.
+- ❌ NON omettere `session_id` se la session esiste — perde causalità.
+- ❌ NON omettere `initiative_slug` se `session.initiative_id` esiste — handoff diventa invisibile al Probe dell'iniziativa.
+- ❌ NON scrivere il mirror a un path custom — sempre `~/Documents/Claude/<tenant_slug>-context/<file_path>`. Se non sei sicuro dove sei, applica i guard `startswith` prima del write.
+- ❌ NON inferire `tenant_slug` da `cwd`, dal nome del progetto Cowork, o dal filename. Per Djungle è sempre `djungle`.
+- ❌ NON bypassare `create_handoff` per scrivere direttamente sul filesystem — DB è canonical, mirror è sync downstream.
+- ❌ NON creare un handoff senza destinazione esplicita — chiedi all'utente.
+- ❌ NON fabbricare body — chiedi all'utente o all'agente attivo.

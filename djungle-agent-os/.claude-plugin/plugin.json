@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "3.2.1",
-  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.2.1: writeback propaga initiative_id ai memory_logs/handoff e propone aggiornamenti SOTA dal summary (last_3_moves, decisions_log, open_loops).",
+  "version": "3.2.2",
+  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.2.2: skill /handoff fixa from_agent attribution (forzato a session.agent_id, no più narrative override), propaga session_id + initiative_id automaticamente, hard-guard sul path mirror per evitare fuga in ~/Documents/handoffs/.",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"
