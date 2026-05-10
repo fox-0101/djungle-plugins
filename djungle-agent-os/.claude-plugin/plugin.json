@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "3.5.0",
-  "description": "Connect Claude to the Djungle Agent OS. v3.5.0 (Agents to Supabase): agents/modules/capabilities/knowledge migrati da Notion a Supabase canonico. Marketplace cross-tenant pubblico, visibility public/private, badge verified/community. Notion mirror sync 15min one-way. Nuove skill /agent (CRUD owned) + /marketplace (discovery).",
+  "version": "4.0.1",
+  "description": "Connect Claude to the Djungle Agent OS. v4.0.1: dual auth (JWT OAuth + API key via Bearer aos_xxx generata dal Self-Service Portal). v4.0 Self-Service Portal con magic link signup. Endpoint canonico agents-api.djungle.io (custom domain stabile, prima branch-alias). v3.5.0 base: agents/modules/capabilities/knowledge in Supabase canonico, marketplace cross-tenant, skill /agent + /marketplace.",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"

@@ -2,7 +2,7 @@
   "mcpServers": {
     "djungle-agent-os": {
       "type": "http",
-      "url": "https://agent-os-v2-git-main-alessandronasi1984-8052s-projects.vercel.app/mcp"
+      "url": "https://agents-api.djungle.io/mcp"
     }
   }
 }

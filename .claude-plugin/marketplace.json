@@ -9,8 +9,8 @@
     {
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
-      "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory via multi-tenant MCP server.",
-      "version": "3.5.0",
+      "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory via multi-tenant MCP server. v4.0.1: API key auth via Self-Service Portal (agent-os-portal.vercel.app).",
+      "version": "4.0.1",
       "author": { "name": "Djungle" },
       "keywords": ["agents", "notion", "agent-os", "djungle", "mcp"]
     }
