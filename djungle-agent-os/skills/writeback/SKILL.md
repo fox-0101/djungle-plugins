@@ -1,162 +1,193 @@
 ---
 name: writeback
 description: |
-  Session writeback command for Agent OS. Use this skill whenever the user says "/writeback", "writeback", "salva sessione", "chiudi sessione", "session log", "wb", or any variation of wanting to save/log what happened during an agent session. This is the WRITEBACK step of the Agent OS flow (INVOKE > CHAT > WRITEBACK > EVOLVE). It analyzes the current conversation, extracts learnings, decisions, performance data, and evolution signals, then saves everything via the Djungle Agent OS MCP server. v3.2.1+: propaga initiative_id ai memory_logs/handoff e propone aggiornamenti SOTA dal summary.
+  Session writeback command for Agent OS. Use this skill whenever the user says "/writeback", "writeback", "salva sessione", "chiudi sessione", "session log", "wb", or any variation of wanting to save/log what happened during an agent session. This is the WRITEBACK step of the Agent OS flow (INVOKE > CHAT > WRITEBACK > EVOLVE). v3.3.0 introduce la pipeline Auto-SOTA: review batch dei fact catturati dallo Scribe in background, commit con conferma utente.
 ---
 
-# Writeback — Agent OS Session Logger (v3.2.1)
+# Writeback — Agent OS Session Logger (v3.3.0)
 
-Close the loop on every agent session. Analyze the conversation and persist what matters via the Djungle Agent OS MCP server.
+Close the loop on every agent session. Pipeline a 5 step:
 
-Third step of the Agent OS cycle: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
+1. **Close** — chiudi session con summary
+2. **Load** — leggi buffer Scribe della session
+3. **Compute** — preview delta SOTA per ogni iniziativa toccata
+4. **Review** — l'utente conferma / scarta / review puntuale
+5. **Commit** — apply tutto in transazione, audit log
 
-## What Writeback Captures
+Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
 
-Analyze the full conversation and extract:
+## Cosa cattura il writeback
 
-1. **Learnings & Insight** — New information, surprising connections. Focus on what was *non-obvious*.
-2. **Decisions Made** — Concrete choices, direction changes, trade-offs. Include the reasoning.
-3. **Performance Assessment** — Quality, efficiency, tone. Rate: `Excellent`, `Good`, `Adequate`, `Needs Improvement`
-4. **Feedback Received** — Corrections, praise, frustration signals, preference revelations.
-5. **Evolution Signals** — Things suggesting the agent's prompt/knowledge/capabilities should be updated.
-6. **Project Status Updates** — Tasks completed, new tasks, blockers, deadlines.
+Il writeback è il momento di **sincronizzazione**. Cattura due classi di dati:
 
-## Step-by-Step Process
+### A — Summary + Memory logs (esistente da v3.2.1)
 
-### Step 1: Identify the Active Agent, Session, and Initiative
+Analizzi la conversazione ed estrai contenuto per 6 categorie:
 
-From the conversation history (the `invoke_agent` response payload), recover:
+1. **Learnings & Insight** — Informazioni nuove, connessioni inattese.
+2. **Decisioni Prese** — Scelte concrete, direzione, trade-off, motivazione.
+3. **Performance Assessment** — Quality, efficiency, tone. Rate: `Excellent`, `Good`, `Adequate`, `Needs Improvement`.
+4. **Feedback Ricevuto** — Correzioni, lodi, segnali di frustrazione.
+5. **Segnali di Evoluzione** — Cose che suggeriscono che il prompt/knowledge dell'agente vadano aggiornati.
+6. **Stato Progetto** — Task completati, nuovi task, blockers, deadline.
 
-- `agent_id` (e.g. `AGT-2`) — the agent that was invoked
-- `session_id` (UUID) — returned by `invoke_agent` when the session started
-- **`session_initiative_id`** (UUID, v3.2.0+) — `resolved_initiative.id` from the invoke payload, if the invoke included `initiative_input`. **null** if the session was not bound to an initiative.
-- **`touched_initiatives`** (UUID[], v3.2.0+) — set if during the chat the user/agent explicitly mentioned other initiatives that were touched (cross-references, dependencies). Build this from the conversation. Default: empty.
+Il summary va in `close_session({summary})`. Cross-post selettivo in `write_memory_log` per le righe che vuoi recuperare alla prossima invocazione.
 
-If neither agent nor session_id is available, ask the user which agent this session was with and invoke fresh (or skip the session close step).
+### B — Scribe buffer (v3.3.0+)
 
-> **Critical (v3.2.1 fix):** the writeback MUST propagate `session_initiative_id` (and `touched_initiatives` if any) to every memory_log and handoff written below. The previous version omitted these fields and produced orphan records — Probe couldn't surface them in `recent_memory_logs` for that initiative.
+Durante la chat l'agente ha bufferizzato in background ogni **fact dell'utente** (8 tipi: stage_change, move_done, decision, open_loop_new/closed, reference, metric, next_action_change). Questo buffer **non è ancora applicato alle SOTA** — il `/wb` è il momento del commit. Vedi **Step 2-5** sotto.
 
-### Step 2: Analyze the Conversation
+## Step-by-step
 
-Extract content for each of the 6 categories. Be thorough but concise. Write in Italian.
+### Step 1 — Recupera contesto sessione
 
-Ask yourself:
-- What would be most valuable to know before the *next* session?
-- What changed that the agent's profile should reflect?
-- What decisions were made that shouldn't be revisited?
+Dal payload `invoke_agent` salvato all'apertura della session:
 
-### Step 3: Close the Session with a Summary
+- `session_id` (UUID) — required per chiudere la session e fetch buffer Scribe
+- `session.agent_id` (es. `AGT-2`)
+- `session.initiative_id` (UUID, v3.2.0+) — `resolved_initiative.id`. Null se la session non era legata a iniziativa
+- `touched_initiatives[]` — eventuali iniziative cross-touched durante la chat (build dalla conversazione)
 
-Use the MCP tool `close_session` with the `session_id` from invoke and a full summary:
+Se `session_id` non recuperabile (utente ha invocato fuori da Cowork), salta Step 4 (close_session) e fai solo write_memory_log + chiedi all'utente lo slug iniziativa per i memory_log.
+
+### Step 2 — Close session
 
 ```
 close_session({
-  session_id: "<uuid from invoke_agent>",
-  summary: "## Sommario Sessione\n[summary]\n\n## Learnings & Insight\n- [items]\n\n## Decisioni Prese\n- [items]\n\n## Performance\n**Rating:** Good\n[explanation]\n\n## Feedback Ricevuto\n- [items]\n\n## Segnali di Evoluzione\n- [items]\n\n## Stato Progetto\n- [items]"
+  session_id: "<uuid>",
+  summary: "## Sommario Sessione\n[summary]\n\n## Learnings & Insight\n- ...\n\n## Decisioni Prese\n- ...\n\n## Performance\n**Rating:** Good\n[explanation]\n\n## Feedback Ricevuto\n- ...\n\n## Segnali di Evoluzione\n- ...\n\n## Stato Progetto\n- ..."
 })
 ```
 
-`close_session` (v3.2.0+) ritorna `{ok, session_id, ended_at, already_closed}` — basta verificare `ok: true`. Se `already_closed: true`, qualcuno ha già chiuso la sessione (es. retry post errore di rete) — non rifare i memory_logs successivi se già scritti.
+Response: `{ok, session_id, ended_at, already_closed}`. Se `already_closed: true` (retry post-errore), salta scrittura memory_log se già fatti — ma procedi con Step 3-6 (lo Scribe buffer è separato).
 
-### Step 4: Cross-post High-Impact Items to Memory Logs (con initiative_id!)
+### Step 3 — Cross-post memory logs (con initiative_id v3.2.1+)
 
-For each **high-impact** learning, decision, or feedback item, use `write_memory_log`. **In v3.2.1 SEMPRE passa `initiative_id` se la sessione era legata a un'iniziativa**:
+Per ogni learning/decision/feedback/evolution di alto valore:
 
 ```
 write_memory_log({
-  agent_id: "AGT-2",
-  type: "learning",                    // learning | decision | context | evolution | observation
-  content: "Full context — enough to understand why this matters",
-  tags: ["optional", "tags"],
-  initiative_id: "<session_initiative_id>",   // v3.2.0+, REQUIRED se sessione legata a iniziativa
-  touched_initiatives: ["<other-init-uuid>"]  // v3.2.0+, opzionale, se il MEM tocca anche altre iniziative
+  agent_id: "<session.agent_id>",
+  type: "learning",
+  content: "...",
+  tags: [...],
+  initiative_id: "<session.initiative_id>",       // PROPAGA SEMPRE
+  touched_initiatives: ["<other-uuid>"]           // se applicabile
 })
 ```
 
-Pick `type` deliberately:
-- `learning` — a non-obvious insight worth remembering
-- `decision` — a concrete choice and its reasoning
-- `context` — background that informs future sessions
-- `evolution` — a signal that the agent's profile should change
-- `observation` — passive notes (use sparingly; learnings are usually better)
+Heuristic: "voglio vedere questo prima della prossima sessione su questa iniziativa?". Se sì → memory_log. Altrimenti resta solo nel summary.
 
-Only cross-post items genuinely useful for future sessions. Heuristic: "Would I want to see this before the next session?"
+> **Nota v3.2.1 fix:** `initiative_id` deve sempre essere propagato dalla session se esiste, altrimenti il record è orfano e il Probe non lo vede.
 
-> **Failure mode evitato (era il bug v3.1.x):** se `session_initiative_id` esiste ma NON viene passato qui, il memory_log risulta orfano (initiative_id NULL) e Probe non lo vede tra i `recent_memory_logs` di quell'iniziativa. È equivalente a perderlo per la knowledge dell'iniziativa — il content resta in DB, ma fuori dal contesto vivo.
-
-### Step 5: Propose SOTA Updates (v3.2.1+, opzionale ma raccomandato)
-
-Se la sessione era legata a un'iniziativa (`session_initiative_id` non null), prima di chiudere proponi all'utente 1-3 aggiornamenti SOTA derivati dal summary. Le sezioni canoniche più adatte al writeback sono:
-
-- **`last_3_moves`** — aggiungi 1 bullet per la mossa principale di questa sessione, formato `(YYYY-MM-DD) breve descrizione`. Mantieni solo le ultime 3 (drop quella più vecchia). Quasi sempre da popolare se c'è stato un output concreto.
-- **`decisions_log`** — append-only: per ogni "Decisione Presa" del summary aggiungi una riga `[YYYY-MM-DD] decisione — motivazione 1-line`. Spesso da popolare.
-- **`current_state`** — sostituisci/integra solo se il summary contiene un cambio di stato strutturale dell'iniziativa (es. nuovo deploy, milestone raggiunto, blocker scomparso). Più raro.
-- **`open_loops`** — aggiungi 1 riga per ogni loop nuovo aperto dalla sessione (item ⏳ o 🟡 nello "Stato Progetto"), formato `[YYYY-MM-DD] descrizione 1-line`. Rimuovi quelli risolti durante la sessione.
-- **`next_action`** — sostituisci con la prossima azione concreta emersa dal summary, se cambia.
-- **`what_it_is`** — RARAMENTE: solo se la sessione ha ridefinito il prodotto/iniziativa stessa.
-
-Mostra le proposte all'utente come diff:
+### Step 4 — Load Scribe buffer (v3.3.0+)
 
 ```
-SOTA agent-os-platform — propongo:
-
-📝 last_3_moves — APPEND:
-+ (2026-05-06) Pubblicazione guida prodotto su agents.djungle.io/guide
-
-📝 decisions_log — APPEND:
-+ [2026-05-06] Format guida HTML web-first non PDF — manutenzione e nav interna
-
-📝 open_loops — APPEND:
-+ [2026-05-06] Workflow auto-gen guida da SOTA (MEM-014) da progettare per v3.3
-
-Confermi tutti / scarta / modifica?
+scribe_review({ session_id: "<uuid>" })
 ```
 
-Su conferma, chiama `update_sota_section` per ognuna:
+Response shape:
+
+```json
+{
+  "buffer_id": "uuid|null",
+  "facts": [...],
+  "groups": [
+    {
+      "initiative_slug": "agent-os-platform",
+      "initiative_name": "Agent OS Platform",
+      "resolved": true,
+      "deltas": [
+        { "fact_index": 0, "type": "move_done", "section": "last_3_moves",
+          "preview": "last_3_moves: + \"...\"", "confidence": "high",
+          "source_quote": "..." }
+      ]
+    }
+  ],
+  "expires_at": "2026-05-11T..."
+}
+```
+
+Se `buffer_id === null` o `facts.length === 0`: niente fact catturati, salta a Step 6.
+
+### Step 5 — Review batch con utente
+
+Mostra preview raggruppato. Esempio output:
 
 ```
-update_sota_section({
-  initiative_slug: "agent-os-platform",
-  section_name: "last_3_moves",
-  content_md: "<contenuto integrato — non solo il diff>",
-  actor_agent: "AGT-2"   // l'agente di questa sessione
-})
+Pipeline Scribe ha rilevato 5 fact-update su 3 iniziative. Confermi?
+
+[1] agent-os-platform · Agent OS Platform
+    last_3_moves: + "(2026-05-10) Pubblicato endpoint /state"
+    decisions_log: + [2026-05-10] Schema visibility binario public/private — owner_tenant_id univoco
+
+[2] bp-djungle-holding-2026 · BP Djungle Holding 2026
+    stage: building → delivered
+    last_3_moves: + "(2026-05-10) Inviato BP a soci 14 maggio"
+
+[3] storytelling-ai · Storytelling AI
+    open_loops: + "[2026-05-10] Validare pricing tier consumer"
+
+Y / n / review-singolo
 ```
 
-Importante:
-- `content_md` è il contenuto **completo** della sezione post-update, non il diff. Per APPEND, prima leggi con `get_sota_section` e poi concatena.
-- `actor_agent` registra in audit_log che è stato l'agente (non l'utente direttamente) a proporre il cambio.
-- Per `last_3_moves` cap a 3 elementi (FIFO drop).
+Opzioni:
 
-### Step 6: Confirm to User
+- **Y** (default) → `scribe_commit({buffer_id})` → applica TUTTI i delta in transazione
+- **n** → `scribe_reject({buffer_id, reason: "user_rejected_all"})`
+- **review-singolo** → per ogni fact mostra:
+  ```
+  [1/5] agent-os-platform · last_3_moves
+        + "(2026-05-10) Pubblicato endpoint /state"
+        confidence: high · "...source quote..."
+        Y / n
+  ```
+  Accumula gli `accepted_fact_indices`, poi `scribe_commit({buffer_id, accepted_fact_indices})`.
 
-Presenta riepilogo finale:
+Se `groups[i].resolved === false` (slug non match nel registry):
+- non rifiutarlo silenziosamente
+- propone all'utente: "Ho rilevato fact su `<slug>` ma non corrisponde a iniziativa esistente. Crea ora come bozza, salta, o salva con altro slug?"
+
+### Step 6 — Confirm to user
 
 ```
-Writeback completato per [Agent Name]
+Writeback completato per Doc
 
-Session chiusa: SES-INV-... (initiative: agent-os-platform)
+Session SES-INV-... chiusa (initiative: agent-os-platform)
 Performance: Good
-3 items scritti in Memory Logs (linkati a agent-os-platform)
-SOTA aggiornata: last_3_moves + decisions_log
-Evoluzione: 1 segnale (vedi MEM-NNN)
+3 memory_logs scritti (linkati ad agent-os-platform)
+
+Scribe pipeline:
+  ✅ 4 fact applicati su 2 iniziative (agent-os-platform, bp-djungle-holding-2026)
+  ⏭ 1 fact scartato in review-singolo
+  ⚠ 0 errori
 ```
 
-Se la sessione NON era legata a iniziativa: ometti la riga "linkati a..." e la riga SOTA.
+Se nessuna pipeline Scribe (Step 4 vuoto): ometti la sezione "Scribe pipeline".
+Se errori in commit: list `errors[]` con `fact_index` e messaggio.
 
 ## Important Notes
 
-- Italiano per i contenuti, inglese per i parametri tool (`type: "learning"`, non `"apprendimento"`).
+- Italiano per i contenuti, inglese per i parametri tool (`type: "learning"` non `"apprendimento"`).
 - Il summary della session è la single source of truth — accurato, non lusinghiero.
-- Cross-posting selettivo: quality over quantity.
-- **v3.2.1: SEMPRE propagare `initiative_id` ai memory_logs se la sessione l'aveva.** Questo è IL fix principale di questa versione — non saltarlo.
-- **SOTA proposal è opzionale ma raccomandato.** Se l'utente vuole velocità ("wb veloce"), salta Step 5. Se è un wb normale, proponi.
-- Se l'MCP server ritorna 401, l'OAuth è scaduto: l'utente deve disconnettere/riconnettere il connettore (Customize → Plugin → Connectors → Djungle agent os). Magic-link < 1 minuto, no env vars in v3+.
-- Se `session_id` non è recuperabile (utente ha invocato l'agente fuori da questa Cowork session, es. su Notion v1), salta Step 3 e fai solo `write_memory_log` — sono indipendenti dalle sessioni. In quel caso `initiative_id` va chiesto all'utente o omesso.
+- Cross-posting memory_log selettivo: quality over quantity.
+- **v3.2.1: SEMPRE propaga `initiative_id` ai memory_logs se la session l'aveva.** Bug evitato.
+- **v3.3.0: la pipeline Scribe è il modo principale di aggiornare le SOTA.** Niente più `/sota-update` manuale dopo ogni sessione — lo fa il wb.
+- Se l'MCP server ritorna 401, OAuth scaduto: l'utente deve disconnettere/riconnettere il connettore (Customize → Plugin → Connectors → Djungle agent os). Magic-link < 1 min, no env vars in v3+.
+- Se `buffer_id` non esiste (es. sessione senza fact catturati, oppure tutti scartati con confidence=low), Step 4-5 si saltano silenziosamente.
 
 ## Cosa NON fa il writeback
 
 - ❌ Non popola `what_it_is` automaticamente — è una decisione semantica del CEO/agente in chat dialogica.
-- ❌ Non crea iniziative nuove — quello è compito di `/initiative create` o del classifier nel resolver di `invoke_agent`.
+- ❌ Non crea iniziative nuove — quello è compito di `/initiative create` o del Resolver+Classifier in `invoke_agent`.
 - ❌ Non chiude handoff pending — quello succede durante la chat con `acknowledge_handoff(status='consumed', notes)`.
-- ❌ Non sostituisce un `/sota-update` esplicito — è un complemento, non un duplicato.
+- ❌ Non sostituisce un `/sota-update` esplicito — è un complemento per i delta automatici.
+- ❌ Non auto-applica i delta Scribe senza review utente. Confidence=low già scartato server-side; medium/high sempre passa per review.
+
+## Edge case — Buffer scaduto
+
+Se `scribe_review` ritorna `expires_at < now()`: il buffer è scaduto (TTL 24h, dovrebbe essere già marked `expired` dal cleanup function, ma defensive check). Comunica all'utente "buffer scaduto, ignoro" e procedi senza Step 5.
+
+## Edge case — Multi-session nella stessa chat
+
+Se l'utente ha invocato 2 agenti nella stessa chat e ora fa `/wb`, ogni session ha il proprio buffer. La skill chiude **solo la session corrente** (l'ultima invocata). Le altre restano open con i loro buffer pending — saranno processate al prossimo `/wb` per quella session, oppure offerte come "recovery" alla prossima invoke (vedi skill `/invoke` step 5).

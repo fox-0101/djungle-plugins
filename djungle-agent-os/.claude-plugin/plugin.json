@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "3.2.2",
-  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.2.2: skill /handoff fixa from_agent attribution (forzato a session.agent_id, no più narrative override), propaga session_id + initiative_id automaticamente, hard-guard sul path mirror per evitare fuga in ~/Documents/handoffs/.",
+  "version": "3.3.0",
+  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.3.0 (Auto-update Engine): Scribe sub-process cattura fact in background durante chat, /wb pipeline 5-step applica delta SOTA con review batch, /invoke recovery dei buffer pending da sessioni abbandonate, nuova skill /scribe-status per debug.",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"

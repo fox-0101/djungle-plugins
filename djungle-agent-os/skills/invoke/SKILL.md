@@ -4,9 +4,9 @@ description: |
   Invoke an AI agent from the Djungle Agent OS. Use this skill whenever the user says "invoke [agent name]", "attiva [agent name]", "carica [agent name]", "usa [agent name]", or any variation of loading/activating/starting an agent. Also trigger when the user mentions an agent by name (like "Dean", "Lora", "Focus", "Iron", "Spacey", "Set", "Doc", "Vince", "Bookey") in the context of wanting to work with it, or asks to "start a session with [agent]", "talk to [agent]", "switch to [agent]", or "fammi parlare con [agent]". This skill connects to the Djungle Agent OS MCP server to fetch agent data and run the pre-flight protocol.
 ---
 
-# Invoke — Agent OS Loader (v3.2.0)
+# Invoke — Agent OS Loader (v3.3.0)
 
-Load an AI agent with **pre-flight protocol**, **pending handoff handling**, and **initiative resolution + context probe** (v3.2.0+).
+Load an AI agent with **pre-flight protocol**, **pending handoff handling**, **initiative resolution + context probe** (v3.2.0+), and **Scribe buffer recovery** (v3.3.0+).
 
 ## CRITICAL — Use ONLY `invoke_agent`
 
@@ -21,6 +21,7 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 - **`resolved_initiative`** — `{id, slug, name}` if the user mentioned an initiative, else null
 - **`probe_payload`** — full context (SOTA, recent_sessions, pending_handoffs, references, carenze_detected) when resolved_initiative is set
 - **`dialog_required`** — true if the resolver needs a user choice (ambiguous match or new-initiative classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
+- **`pending_scribe_buffers`** (v3.3.0+) — buffer Scribe ancora pending dell'utente (escluso il buffer della session appena creata). Se non vuoto, vedi Step 3.7 — recovery dialog prima di partire col task.
 
 ## Step-by-step
 
@@ -74,6 +75,23 @@ If `result.probe_payload` is non-null:
 - It contains `initiative` (full row), `domain`, `sota[]` (canonical sections), `recent_sessions[]`, `pending_handoffs[]`, `recent_memory_logs[]`, `references[]` (related initiatives with current_state snippet), `carenze_detected[]` (4 types: missing_sota_section, stale_initiative, open_loop_old, missing_kpi).
 - Inject it into the agent's working memory as a "Initiative Context" block prepended to the conversation, after CLAUDE.md and before the user's task.
 - If `carenze_detected[]` has entries with severity `warning`, the agent SHOULD mention them in 1 line ("vedo open_loop X aperto da N giorni") before proceeding to the task. The MOD-preflight-check Notion module handles this — just pass the carenze through.
+
+### 3.7. Recovery dei buffer Scribe pending (v3.3.0+)
+
+Se `result.pending_scribe_buffers` è non-vuoto, l'utente ha buffer di fact catturati da una sessione precedente abbandonata (TTL 24h). Prima di proseguire, propone:
+
+```
+⚠️ Recovery Scribe — Ho 4 fact-update pending da una sessione di ~30 min fa
+con Iron (initiatives toccate: clienti-rentable-x, bp-djungle-holding-2026).
+
+Vuoi processarli ora prima di partire? [Y / n / dopo]
+```
+
+- **Y** → chiama `scribe_review({buffer_id})` per ognuno → mostra preview → conferma → `scribe_commit` (stesso flusso che la skill `/wb` userebbe — riusa quel pattern)
+- **n** → chiama `scribe_reject({buffer_id, reason: "user_dismissed_at_invoke"})` per ognuno
+- **dopo** → non fare nulla, lasciali pending — saranno offerti di nuovo alla prossima invoke o si auto-expire a 24h
+
+Solo se non c'è dialog_required ed è una nuova sessione: skip questo step se `dialog_required=true` (devi prima risolvere quello) o se l'utente sta riprendendo la stessa session (improbabile, ma defensive).
 
 ### 4. Surface pending handoffs (if any)
 
