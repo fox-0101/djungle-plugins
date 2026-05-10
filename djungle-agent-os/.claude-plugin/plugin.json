@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "3.3.0",
-  "description": "Connect Claude to the Djungle Agent OS. Invoke agents with personality, knowledge, and memory. v3.3.0 (Auto-update Engine): Scribe sub-process cattura fact in background durante chat, /wb pipeline 5-step applica delta SOTA con review batch, /invoke recovery dei buffer pending da sessioni abbandonate, nuova skill /scribe-status per debug.",
+  "version": "3.5.0",
+  "description": "Connect Claude to the Djungle Agent OS. v3.5.0 (Agents to Supabase): agents/modules/capabilities/knowledge migrati da Notion a Supabase canonico. Marketplace cross-tenant pubblico, visibility public/private, badge verified/community. Notion mirror sync 15min one-way. Nuove skill /agent (CRUD owned) + /marketplace (discovery).",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"
