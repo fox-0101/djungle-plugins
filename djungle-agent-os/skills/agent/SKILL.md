@@ -1,10 +1,10 @@
 ---
 name: agent
 description: |
-  Manage your owned agents (CRUD owner-only). Trigger when the user says "/agent list", "/agent show <slug>", "/agent create ...", "/agent update <slug> ...", "/agent publish <slug>", "/agent unpublish <slug>", "/agent archive <slug>", "/agent stats <slug>", "crea agente", "pubblica agente", "modifica system prompt di X", "archivia agente". Owner-only: agisci solo su agenti del tenant corrente. v3.5.0+.
+  Manage your owned agents (CRUD owner-only). Trigger when the user says "/agent list", "/agent show <slug>", "/agent create ...", "/agent update <slug> ...", "/agent publish <slug>", "/agent unpublish <slug>", "/agent archive <slug>", "/agent stats <slug>", "/agent versions <slug>", "/agent restore <slug> <N>", "crea agente", "pubblica agente", "modifica system prompt di X", "archivia agente", "ripristina versione". Owner-only: agisci solo su agenti del tenant corrente. v3.5.0+ · versioning v4.1.0+.
 ---
 
-# /agent — Manage owned agents (v3.5.0)
+# /agent — Manage owned agents (v4.1.0)
 
 CRUD owner-only sugli agenti del tenant corrente. RLS server-side impedisce write cross-tenant: anche se passi uno slug di un agente di un altro tenant, l'update ritornerà error.
 
@@ -151,20 +151,62 @@ Stats Cassia (AGT-11):
 
 Implementazione: query a `agent_invocations` group by `consumer_tenant_id` + count sessions. Nota: questa query non ha un tool MCP dedicato in v3.5.0 — fai una sequenza di chiamate (`list_marketplace_agents` per stats di base + query custom se serve dettaglio).
 
+### `/agent versions <slug>` (v4.1.0)
+
+Mostra la history versioni dell'agente. Append-only — ogni modifica al `system_prompt` crea una nuova versione. Owner-only.
+
+Chiama `list_agent_versions({slug})`. Output:
+
+```
+Versioni di Annie (AGT-101):
+
+v3  2026-05-11 14:22  Alessandro    "raffinato tono pratico, vincoli output max 200 parole"
+v2  2026-05-11 11:08  Alessandro    "aggiunti vincoli su KPI, settore manifatturiero"
+v1  2026-05-11 09:38  Alessandro    "v1 — creazione iniziale via portal"
+
+Comandi:
+  /agent restore annie 2    — ripristina v2 come nuova versione corrente
+  /agent show annie         — vedi versione attuale
+```
+
+### `/agent restore <slug> <version>` (v4.1.0)
+
+Ripristina una versione precedente. **Append-only**: NON sovrascrive la versione corrente, crea una v(N+1) con il prompt di vM. Owner-only.
+
+```
+/agent restore annie 2
+```
+
+Chiama `restore_agent_version({slug, version_number: 2})`. Conferma esplicita:
+
+```
+Stai per ripristinare annie a v2 (creata 2026-05-11 11:08).
+Verrà creata v4 con il prompt di v2 (la v3 corrente resta nella history).
+Confermi? [Y/n]
+```
+
+Su Y → tool MCP risponde con `new_version: 4`. Aggiorna l'utente:
+
+```
+✓ annie ripristinata.
+  v4 (corrente) ← prompt di v2
+  Storia: v1 · v2 · v3 · v4 (4 versioni totali)
+```
+
 ## Important rules
 
 - **Owner-only writes:** non puoi modificare agenti di altri tenant (RLS lo blocca). Per modificare il tuo, devi essere `owner_tenant_id = current tenant`.
 - **System prompt è grosso:** quando aggiorni, mostra sempre la diff in chars + preview di 200 char dei primi 200 char dopo l'update.
-- **Versioning interno:** ogni update incrementa `updated_at` automaticamente. Non c'è un version semantic per agents in v3.5.0 (verrà in v4.1).
+- **Versioning v4.1.0:** ogni modifica al `system_prompt` crea automaticamente una nuova riga in `agent_versions` (append-only). Le altre modifiche (name, role, descriptions) NON creano una version. Storage attivo + restore UI da v4.1, UI di history visuale rimane TBD v4.2.
 - **Marketplace visibility:** `public` = visibile a tutti i tenant via `list_marketplace_agents`. `private` = solo il tenant. Cambio di visibility è reversibile in qualsiasi momento.
 - **Archive vs Delete:** in v3.5.0 c'è solo soft-delete (archive). Hard-delete via SQL admin se serve davvero (audit log conserva).
 
 ## Cosa NON fa
 
 - ❌ Non modifica agenti di altri tenant (RLS blocca)
-- ❌ Non gestisce link a moduli/capabilities/knowledge — quelli arrivano in v4.1 con UI dedicata
-- ❌ Non versioning rollback — solo update incrementale
+- ❌ Non gestisce link a moduli/capabilities/knowledge — UI dedicata TBD v4.2
 - ❌ Non clone-from-marketplace — se vuoi adottare un agente public di un altro tenant, lo invochi direttamente con `invoke_agent` (la sua identità resta del publisher)
+- ❌ Knowledge upload (PDF/URL) — TBD v4.2
 
 ## Edge cases
 

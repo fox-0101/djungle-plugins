@@ -1,10 +1,10 @@
 ---
 name: marketplace
 description: |
-  Browse the public Agent OS marketplace cross-tenant. Trigger when the user says "/marketplace", "/marketplace search <query>", "/marketplace top", "fammi vedere il marketplace", "agenti pubblici", "cosa offre il marketplace", "cerca agente <X>". Read-only — discovery + browsing. Per invocare un agente trovato, usa /invoke <name>. v3.5.0+.
+  Browse the public Agent OS marketplace cross-tenant. Trigger when the user says "/marketplace", "/marketplace search <query>", "/marketplace top", "/marketplace report <slug>", "fammi vedere il marketplace", "agenti pubblici", "cosa offre il marketplace", "cerca agente <X>", "segnala agente <X>". Read-only su discovery, write su report flow. Per invocare un agente trovato, usa /invoke <name>. v3.5.0+ · report flow v4.1.0+.
 ---
 
-# /marketplace — Public agents discovery (v3.5.0)
+# /marketplace — Public agents discovery (v4.1.0)
 
 Esplora gli agenti pubblici di tutti i tenant del sistema. Read-only. Non installa nulla — gli agenti public sono direttamente invocabili con `/invoke <name>`.
 
@@ -69,6 +69,31 @@ Filtra solo `badge=verified`. Equivalente a `list_marketplace_agents({badge: "ve
 
 Filtra solo agenti pubblici di terzi (esclusi i Djungle).
 
+### `/marketplace report <slug> <reason> [--details="..."]` (v4.1.0)
+
+Segnala un agente community per abuse. Usalo solo per spam, contenuti inappropriati o agenti che non funzionano. Lo staff Djungle revisiona entro 7 giorni.
+
+Reason validi: `spam` · `inappropriate` · `not_working` · `other`.
+
+```
+/marketplace report cassia spam --details="prompt pubblicitario non funzionale"
+```
+
+Chiama `report_agent({slug, reason, details})`. **Bloccato self-report**: non puoi segnalare i tuoi agenti (il tool ritorna error "cannot report your own agent").
+
+Output:
+```
+✓ Report inviato per cassia.
+  Reason: spam
+  Status: pending
+  Tracking: rep_a8f3b2…
+
+Lo staff Djungle revisionerà entro 7 giorni.
+Possibili azioni: dismiss · mark_reviewed · unpublish (forza visibility=private).
+```
+
+Da UI portal: link diretto in `/dashboard/marketplace/<slug>` (form inline).
+
 ## Important behavior
 
 - **Sempre read-only.** Non chiama `invoke_agent`, `create_agent`, `publish_agent`. Solo discovery.
@@ -110,10 +135,10 @@ Non parte di /marketplace, ma flusso correlato:
 
 - ❌ Non installa / clona agenti — sono già usabili via `/invoke`
 - ❌ Non scarica system_prompt — IP protetto del publisher
-- ❌ Non rating / review — verrà in v4.1
+- ❌ Non rating / review — TBD v5
 - ❌ Non publish — quello è in `/agent publish`
-- ❌ Non filtra per tenant specifico — l'unico filter cross-tenant in v3.5 è `badge`
+- ❌ Non filtra per tenant specifico — `badge` resta l'unico filter cross-tenant
 
 ## Edge case — Pagination
 
-In v3.5.0 il limit max è 50 per chiamata. Se vuoi browsare oltre, paginare client-side (es. memorizza l'ultimo invoke_count visto e cerca quelli sotto). UI con paginazione completa: v4.1.
+Il limit max è 50 per chiamata. Per browsare oltre: paginare client-side (memorizza l'ultimo invoke_count visto e cerca quelli sotto). UI marketplace con paginazione completa è live nel portal v4.1 a `/dashboard/marketplace`.
