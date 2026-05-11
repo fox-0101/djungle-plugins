@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.1.0",
-  "description": "Connect Claude to the Djungle Agent OS. v4.1.0: agent versioning (skill /agent versions + restore), marketplace report flow (skill /marketplace report). Backed da 52 MCP tool su agents-api.djungle.io. v4.0.x: dual auth (OAuth + API key dal portal). v3.5: marketplace cross-tenant. UI editor + Doc Coach + marketplace browse: agents.djungle.io.",
+  "version": "4.1.1",
+  "description": "Connect Claude to the Djungle Agent OS. v4.1.1: skill /sota-board crea dashboard live Iniziative & SOTA come artifact persistente nel sidebar Cowork. v4.1.0: agent versioning + marketplace report flow. Backed da 52 MCP tool su agents-api.djungle.io. UI editor + Doc Coach + marketplace browse: agents.djungle.io.",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"

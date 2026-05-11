@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Iniziative & SOTA — Djungle</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --border: #e7e5e4;
+  --text: #1c1917;
+  --text-muted: #57534e;
+  --text-subtle: #a8a29e;
+  --accent: #ea580c;
+  --accent-soft: #fed7aa;
+  --green: #059669;
+  --green-soft: #d1fae5;
+  --yellow: #ca8a04;
+  --yellow-soft: #fef3c7;
+  --red: #dc2626;
+  --red-soft: #fee2e2;
+  --gray: #71717a;
+  --gray-soft: #f4f4f5;
+  --blue: #2563eb;
+  --blue-soft: #dbeafe;
+  --purple: #7c3aed;
+  --purple-soft: #ede9fe;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 24px;
+}
+
+header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+h1 {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tenant-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--green-soft);
+  color: var(--green);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-subtle);
+}
+
+.btn {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn:hover { border-color: var(--text-muted); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 14px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 2px;
+}
+
+.filters {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.filter-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.filter-btn:hover { border-color: var(--text-muted); }
+
+.filter-btn.active {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+
+.filter-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-right: 4px;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.domain-section { margin-bottom: 28px; }
+
+.domain-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.domain-name {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.domain-type {
+  font-size: 10px;
+  padding: 2px 6px;
+  background: var(--gray-soft);
+  color: var(--text-muted);
+  border-radius: 3px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.domain-count {
+  font-size: 12px;
+  color: var(--text-subtle);
+  margin-left: auto;
+}
+
+.initiatives-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.initiative {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.initiative.expanded { border-color: var(--text-muted); }
+
+.initiative-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  cursor: pointer;
+  user-select: none;
+  flex-wrap: wrap;
+}
+
+.initiative-header:hover { background: var(--gray-soft); }
+
+.initiative.expanded .initiative-header {
+  background: var(--gray-soft);
+  border-bottom: 1px solid var(--border);
+}
+
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-dot.green { background: var(--green); }
+.health-dot.yellow { background: var(--yellow); }
+.health-dot.red { background: var(--red); }
+.health-dot.dormant { background: var(--gray); }
+
+.initiative-name {
+  font-weight: 600;
+  flex: 1;
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.initiative-slug {
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-family: ui-monospace, monospace;
+}
+
+.chip {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chip-type-business { background: var(--blue-soft); color: var(--blue); }
+.chip-type-thesis { background: var(--purple-soft); color: var(--purple); }
+.chip-type-experiment { background: var(--accent-soft); color: var(--accent); }
+.chip-type-deliverable { background: var(--green-soft); color: var(--green); }
+.chip-type-campaign { background: var(--yellow-soft); color: var(--yellow); }
+.chip-type-sideproject { background: var(--gray-soft); color: var(--gray); }
+
+.chip-stage-idea { background: var(--gray-soft); color: var(--gray); }
+.chip-stage-exploring { background: var(--purple-soft); color: var(--purple); }
+.chip-stage-building { background: var(--accent-soft); color: var(--accent); }
+.chip-stage-operating { background: var(--green-soft); color: var(--green); }
+.chip-stage-paused { background: var(--yellow-soft); color: var(--yellow); }
+.chip-stage-killed { background: var(--red-soft); color: var(--red); }
+.chip-stage-delivered { background: var(--green-soft); color: var(--green); }
+.chip-stage-archived { background: var(--gray-soft); color: var(--gray); }
+
+.last-touched {
+  font-size: 11px;
+  color: var(--text-subtle);
+  white-space: nowrap;
+}
+
+.expand-icon {
+  font-size: 11px;
+  color: var(--text-subtle);
+  transition: transform 0.15s;
+  margin-left: 4px;
+}
+
+.initiative.expanded .expand-icon { transform: rotate(90deg); }
+
+.sota-content {
+  padding: 16px;
+  background: var(--bg);
+  display: none;
+  min-height: 80px;
+}
+
+.initiative.expanded .sota-content { display: block; }
+
+.sota-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  color: var(--text-subtle);
+  font-size: 12px;
+  gap: 8px;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.sota-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.sota-section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 10px 12px;
+}
+
+.sota-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sota-section-title .updated {
+  font-size: 9px;
+  color: var(--text-subtle);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-left: auto;
+}
+
+.sota-section-content {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.sota-section-content.empty {
+  color: var(--text-subtle);
+  font-style: italic;
+}
+
+.sota-section-content ul { margin: 4px 0 0 16px; padding: 0; }
+.sota-section-content li { margin-bottom: 3px; }
+.sota-section-content strong { font-weight: 600; }
+.sota-section-content em { font-style: italic; }
+
+.sota-section-content code {
+  background: var(--gray-soft);
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-family: ui-monospace, monospace;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-subtle);
+  font-size: 13px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+}
+
+.error-state {
+  text-align: center;
+  padding: 32px 24px;
+  background: var(--red-soft);
+  border: 1px solid var(--red);
+  border-radius: 6px;
+  color: var(--red);
+  font-size: 13px;
+}
+
+.error-state strong {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.full-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  gap: 12px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.description {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+footer {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-subtle);
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+footer code {
+  background: var(--gray-soft);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="title-row">
+    <h1>Iniziative & SOTA</h1>
+    <span class="tenant-badge">Djungle</span>
+    <span class="live-badge"><span class="live-dot"></span>Live</span>
+  </div>
+  <div class="subtitle">Registry vivo del lavoro persistente — Agent OS v3.2.x</div>
+  <div class="meta-row">
+    <span id="fetch-info">Caricamento…</span>
+    <button class="btn" id="reload-btn" onclick="loadAll(true)">↻ Aggiorna</button>
+  </div>
+</header>
+
+<section class="stats-row" id="stats"></section>
+
+<div class="filters" id="filters" style="display:none;">
+  <span class="filter-label">Stage</span>
+  <button class="filter-btn active" data-filter="stage" data-value="all">Tutte</button>
+  <button class="filter-btn" data-filter="stage" data-value="building">Building</button>
+  <button class="filter-btn" data-filter="stage" data-value="operating">Operating</button>
+  <button class="filter-btn" data-filter="stage" data-value="exploring">Exploring</button>
+  <button class="filter-btn" data-filter="stage" data-value="idea">Idea</button>
+  <div class="divider"></div>
+  <span class="filter-label">Type</span>
+  <button class="filter-btn active" data-filter="type" data-value="all">Tutte</button>
+  <button class="filter-btn" data-filter="type" data-value="business">Business</button>
+  <button class="filter-btn" data-filter="type" data-value="deliverable">Deliverable</button>
+  <button class="filter-btn" data-filter="type" data-value="thesis">Thesis</button>
+  <button class="filter-btn" data-filter="type" data-value="experiment">Experiment</button>
+  <button class="filter-btn" data-filter="type" data-value="sideproject">Sideproject</button>
+</div>
+
+<main id="content">
+  <div class="full-loading">
+    <div class="spinner"></div>
+    <span>Carico iniziative dal tenant <strong>djungle</strong>…</span>
+  </div>
+</main>
+
+<footer>
+  <span>Source: <code>callMcpTool('list_initiatives' | 'list_domains' | 'get_sota')</code> — server djungle-agent-os</span>
+  <span id="footer-meta"></span>
+</footer>
+
+<script>
+const SERVER = 'mcp__01dc3b55-669d-420d-978b-172c610befe4';
+
+const SOTA_SECTION_LABELS = {
+  what_it_is: "Cos'è",
+  current_state: "Stato corrente",
+  last_3_moves: "Ultime 3 mosse",
+  open_loops: "Open loops",
+  next_action: "Prossima azione",
+  decisions_log: "Decisioni",
+  metrics: "Metrics",
+  risks: "Risks",
+  people: "People",
+  references: "References"
+};
+
+const DOMAIN_ORDER_PREFERENCE = [
+  'djungle-holding',
+  'agent-os',
+  'bridge-capital',
+  'space-for-imagination',
+  'polaris-vb',
+  'personal'
+];
+
+let initiatives = null;
+let domains = null;
+let domainsBySlug = {};
+let domainsById = {};
+let sotaCache = {};
+let filters = { stage: 'all', type: 'all' };
+let openInitiative = null;
+
+function formatRelative(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const now = new Date();
+  const diff = Math.floor((now - d) / 1000);
+  if (diff < 60) return diff + 's fa';
+  if (diff < 3600) return Math.floor(diff / 60) + ' min fa';
+  if (diff < 86400) return Math.floor(diff / 3600) + ' ore fa';
+  if (diff < 604800) return Math.floor(diff / 86400) + ' giorni fa';
+  if (diff < 2592000) return Math.floor(diff / 604800) + ' sett. fa';
+  return Math.floor(diff / 2592000) + ' mesi fa';
+}
+
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderMarkdownLite(text) {
+  if (!text || text.trim() === '') {
+    return '<span class="empty">— vuota —</span>';
+  }
+  let html = escapeHtml(text);
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/(?<!\*)\*([^\*]+)\*(?!\*)/g, '<em>$1</em>');
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+  const lines = html.split('\n');
+  let inList = false;
+  let out = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^[•\-\*]\s+/.test(trimmed)) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push('<li>' + trimmed.replace(/^[•\-\*]\s+/, '') + '</li>');
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      if (trimmed) out.push(line);
+      else out.push('');
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('\n');
+}
+
+// MCP tool calls can return data in several shapes:
+//   - direct array (when server returns JSON directly)
+//   - { content: [{ type: "text", text: "<json string>" }] }  (standard MCP)
+//   - { result: <data> }  (some wrappers)
+//   - { initiatives: [...] } / { domains: [...] } / { sections: [...] }  (named)
+function unwrapMcp(res, expectKey) {
+  if (res === null || res === undefined) return null;
+  if (Array.isArray(res)) return res;
+
+  // MCP standard wrapper
+  if (res.content && Array.isArray(res.content)) {
+    const item = res.content.find(x => x && x.type === 'text');
+    if (item && item.text) {
+      try {
+        const parsed = JSON.parse(item.text);
+        return unwrapMcp(parsed, expectKey);
+      } catch (e) {
+        console.warn('Cannot parse MCP text:', item.text);
+        return null;
+      }
+    }
+  }
+
+  // Result wrapper
+  if (res.result !== undefined) return unwrapMcp(res.result, expectKey);
+
+  // Named keys
+  if (expectKey && res[expectKey] !== undefined) return res[expectKey];
+  if (res.initiatives) return res.initiatives;
+  if (res.domains) return res.domains;
+  if (res.sections) return res.sections;
+  if (res.data) return unwrapMcp(res.data, expectKey);
+
+  return res;
+}
+
+async function callMcp(name, args, expectKey) {
+  if (!window.cowork || !window.cowork.callMcpTool) {
+    throw new Error('window.cowork.callMcpTool non disponibile');
+  }
+  const raw = await window.cowork.callMcpTool(SERVER + '__' + name, args || {});
+  console.log('[' + name + '] raw response:', raw);
+  const unwrapped = unwrapMcp(raw, expectKey);
+  console.log('[' + name + '] unwrapped:', unwrapped);
+  return unwrapped;
+}
+
+async function loadAll(force) {
+  const reloadBtn = document.getElementById('reload-btn');
+  const fetchInfo = document.getElementById('fetch-info');
+  const content = document.getElementById('content');
+  const filtersEl = document.getElementById('filters');
+
+  reloadBtn.disabled = true;
+  reloadBtn.textContent = '↻ Caricamento…';
+
+  if (force) {
+    sotaCache = {};
+    openInitiative = null;
+  }
+
+  try {
+    const [initRes, domRes] = await Promise.all([
+      callMcp('list_initiatives', {}, 'initiatives'),
+      callMcp('list_domains', {}, 'domains')
+    ]);
+
+    initiatives = Array.isArray(initRes) ? initRes : [];
+    domains = Array.isArray(domRes) ? domRes : [];
+
+    if (initiatives.length === 0) {
+      content.innerHTML = '<div class="error-state"><strong>Lista iniziative vuota</strong>' +
+        'callMcpTool ha ritornato 0 elementi. Apri la console (Cmd+Opt+I) e guarda i log "[list_initiatives] raw response:" per vedere il formato grezzo.<br><br>' +
+        '<button class="btn" onclick="loadAll(true)">Riprova</button></div>';
+      reloadBtn.disabled = false;
+      reloadBtn.textContent = '↻ Aggiorna';
+      return;
+    }
+
+    domainsBySlug = {};
+    domainsById = {};
+    domains.forEach(d => {
+      domainsBySlug[d.slug] = d;
+      domainsById[d.id] = d;
+    });
+
+    fetchInfo.textContent = initiatives.length + ' iniziative · ' + domains.length + ' domini · aggiornato adesso';
+    document.getElementById('footer-meta').textContent = 'Tenant: djungle · Updated: ' + new Date().toLocaleTimeString('it-IT');
+
+    filtersEl.style.display = 'flex';
+    renderStats();
+    renderInitiatives();
+  } catch (err) {
+    console.error('loadAll error:', err);
+    content.innerHTML = '<div class="error-state"><strong>Errore caricamento</strong>' +
+      escapeHtml(err.message || String(err)) +
+      '<br><br><button class="btn" onclick="loadAll(true)">Riprova</button></div>';
+  } finally {
+    reloadBtn.disabled = false;
+    reloadBtn.textContent = '↻ Aggiorna';
+  }
+}
+
+function applyFilters(arr) {
+  return arr.filter(i => {
+    if (filters.stage !== 'all' && i.stage !== filters.stage) return false;
+    if (filters.type !== 'all' && i.type !== filters.type) return false;
+    return true;
+  });
+}
+
+function renderStats() {
+  const filtered = applyFilters(initiatives);
+  const stats = [
+    { label: 'Iniziative', value: filtered.length },
+    { label: 'Building', value: filtered.filter(i => i.stage === 'building').length },
+    { label: 'Operating', value: filtered.filter(i => i.stage === 'operating').length },
+    { label: 'Exploring', value: filtered.filter(i => i.stage === 'exploring').length },
+    { label: 'Idea', value: filtered.filter(i => i.stage === 'idea').length },
+    { label: 'Health green', value: filtered.filter(i => i.health === 'green').length }
+  ];
+  document.getElementById('stats').innerHTML = stats.map(s =>
+    '<div class="stat"><div class="stat-value">' + s.value + '</div><div class="stat-label">' + s.label + '</div></div>'
+  ).join('');
+}
+
+function renderInitiatives() {
+  const filtered = applyFilters(initiatives);
+  const byDomain = {};
+  filtered.forEach(i => {
+    const d = domainsById[i.parent_domain_id];
+    const dslug = d ? d.slug : 'no-domain';
+    if (!byDomain[dslug]) byDomain[dslug] = { domain: d, initiatives: [] };
+    byDomain[dslug].initiatives.push(i);
+  });
+
+  const content = document.getElementById('content');
+
+  if (filtered.length === 0) {
+    content.innerHTML = '<div class="empty-state">Nessuna iniziativa corrisponde ai filtri selezionati.</div>';
+    return;
+  }
+
+  const ordered = [];
+  DOMAIN_ORDER_PREFERENCE.forEach(slug => { if (byDomain[slug]) ordered.push(slug); });
+  Object.keys(byDomain).forEach(slug => { if (!DOMAIN_ORDER_PREFERENCE.includes(slug)) ordered.push(slug); });
+
+  let html = '';
+  ordered.forEach(domainSlug => {
+    const grp = byDomain[domainSlug];
+    const dName = grp.domain ? grp.domain.name : 'Senza dominio';
+    const dType = grp.domain ? grp.domain.type : '—';
+
+    html += '<section class="domain-section">' +
+      '<div class="domain-header">' +
+        '<span class="domain-name">' + escapeHtml(dName) + '</span>' +
+        '<span class="domain-type">' + escapeHtml(dType) + '</span>' +
+        '<span class="domain-count">' + grp.initiatives.length + ' iniziative</span>' +
+      '</div>' +
+      '<div class="initiatives-grid">';
+
+    grp.initiatives.forEach(i => {
+      const isOpen = openInitiative === i.slug;
+      html += '<article class="initiative' + (isOpen ? ' expanded' : '') + '" data-slug="' + i.slug + '">' +
+        '<div class="initiative-header" onclick="toggleInitiative(\'' + i.slug + '\')">' +
+          '<span class="health-dot ' + i.health + '" title="health: ' + i.health + '"></span>' +
+          '<span class="initiative-name">' + escapeHtml(i.name) + '</span>' +
+          '<span class="initiative-slug">' + i.slug + '</span>' +
+          '<span class="chip chip-type-' + i.type + '">' + i.type + '</span>' +
+          '<span class="chip chip-stage-' + i.stage + '">' + i.stage + '</span>' +
+          '<span class="last-touched">' + formatRelative(i.last_touched) + '</span>' +
+          '<span class="expand-icon">▶</span>' +
+        '</div>' +
+        '<div class="sota-content" id="sota-' + i.slug + '">' +
+          (isOpen ? renderSotaCached(i.slug, i) : '') +
+        '</div>' +
+      '</article>';
+    });
+
+    html += '</div></section>';
+  });
+
+  content.innerHTML = html;
+}
+
+async function toggleInitiative(slug) {
+  const el = document.querySelector('[data-slug="' + slug + '"]');
+  if (!el) return;
+
+  if (el.classList.contains('expanded')) {
+    el.classList.remove('expanded');
+    if (openInitiative === slug) openInitiative = null;
+    return;
+  }
+
+  document.querySelectorAll('.initiative.expanded').forEach(e => e.classList.remove('expanded'));
+  el.classList.add('expanded');
+  openInitiative = slug;
+
+  const i = initiatives.find(x => x.slug === slug);
+  const container = document.getElementById('sota-' + slug);
+
+  if (sotaCache[slug]) {
+    container.innerHTML = renderSota(sotaCache[slug], i);
+    return;
+  }
+
+  container.innerHTML = '<div class="sota-loading"><div class="spinner"></div><span>Carico SOTA…</span></div>';
+
+  try {
+    const sections = await callMcp('get_sota', { initiative_slug: slug }, 'sections');
+    const arr = Array.isArray(sections) ? sections : [];
+    sotaCache[slug] = arr;
+    container.innerHTML = renderSota(arr, i);
+  } catch (err) {
+    console.error('get_sota error:', err);
+    container.innerHTML = '<div class="error-state"><strong>Errore caricamento SOTA</strong>' +
+      escapeHtml(err.message || String(err)) + '</div>';
+  }
+}
+
+function renderSotaCached(slug, initiative) {
+  return sotaCache[slug] ? renderSota(sotaCache[slug], initiative) : '';
+}
+
+function renderSota(sections, initiative) {
+  let html = '';
+  if (initiative && initiative.description) {
+    html += '<div class="description">' + escapeHtml(initiative.description) + '</div>';
+  }
+
+  if (!sections || sections.length === 0) {
+    html += '<div class="empty-state">Nessuna sezione SOTA per questa iniziativa. Da popolare manualmente o aspettare lo Scribe v3.3.0.</div>';
+    return html;
+  }
+
+  // BUG WORKAROUND (2026-05-11): sota_sections table contiene duplicati
+  // per section_name (missing UNIQUE constraint + tool update_sota_section
+  // fa INSERT invece di UPSERT). Dedup client-side: per ogni section_name
+  // tieni la riga più "fresca" (content non-null preferito, poi updated_at DESC).
+  const dedupedMap = new Map();
+  for (const s of sections) {
+    const key = s.section_name + (s.custom_section_label ? '::' + s.custom_section_label : '');
+    const existing = dedupedMap.get(key);
+    const hasContent = !!(s.content_md && s.content_md.trim());
+    const existingHasContent = existing && !!(existing.content_md && existing.content_md.trim());
+
+    if (!existing) {
+      dedupedMap.set(key, s);
+    } else if (hasContent && !existingHasContent) {
+      dedupedMap.set(key, s);  // preferisci la versione piena
+    } else if (hasContent === existingHasContent) {
+      // stessa fillness, prendi la più recente
+      if (new Date(s.updated_at) > new Date(existing.updated_at)) {
+        dedupedMap.set(key, s);
+      }
+    }
+  }
+  const dedupedSections = Array.from(dedupedMap.values());
+
+  // Order canonico delle 6 sezioni base + altre per display_order
+  const CANONICAL_ORDER = ['what_it_is', 'current_state', 'last_3_moves', 'open_loops', 'next_action', 'decisions_log'];
+  const sorted = dedupedSections.slice().sort((a, b) => {
+    const aIdx = CANONICAL_ORDER.indexOf(a.section_name);
+    const bIdx = CANONICAL_ORDER.indexOf(b.section_name);
+    if (aIdx >= 0 && bIdx >= 0) return aIdx - bIdx;
+    if (aIdx >= 0) return -1;
+    if (bIdx >= 0) return 1;
+    return (a.display_order || 0) - (b.display_order || 0);
+  });
+
+  html += '<div class="sota-grid">' +
+    sorted.map(s => {
+      const label = SOTA_SECTION_LABELS[s.section_name] || s.custom_section_label || s.section_name;
+      const updated = s.updated_at ? formatRelative(s.updated_at) : '';
+      const filled = s.content_md && s.content_md.trim().length > 0;
+      const content = filled ? renderMarkdownLite(s.content_md) : '<span class="empty">— vuota —</span>';
+      return '<div class="sota-section">' +
+        '<div class="sota-section-title">' + escapeHtml(label) +
+          (updated ? '<span class="updated">' + updated + '</span>' : '') +
+        '</div>' +
+        '<div class="sota-section-content' + (filled ? '' : ' empty') + '">' + content + '</div>' +
+      '</div>';
+    }).join('') +
+    '</div>';
+
+  return html;
+}
+
+function setupFilters() {
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.filter;
+      const value = btn.dataset.value;
+      filters[group] = value;
+      document.querySelectorAll('.filter-btn[data-filter="' + group + '"]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderStats();
+      renderInitiatives();
+    });
+  });
+}
+
+loadAll();
+setupFilters();
+</script>
+
+</body>
+</html>
