@@ -9,8 +9,8 @@
     {
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
-      "description": "Connect Claude to the Djungle Agent OS. v4.1.1: dashboard live Iniziative & SOTA come artifact persistente nel sidebar Cowork (skill /sota-board). v4.1: agent versioning + marketplace report flow. Self-service portal su agents.djungle.io con editor custom agents + Doc Coach AI assistant.",
-      "version": "4.1.1",
+      "description": "Connect Claude to the Djungle Agent OS. v4.1.2 hotfix: dashboard /sota-board ora con server discovery dinamica (UUID per-installation). v4.1: agent versioning + marketplace report flow + dashboard live. Self-service portal su agents.djungle.io con editor custom agents + Doc Coach AI assistant.",
+      "version": "4.1.2",
       "author": { "name": "Djungle" },
       "keywords": ["agents", "notion", "agent-os", "djungle", "mcp"]
     }

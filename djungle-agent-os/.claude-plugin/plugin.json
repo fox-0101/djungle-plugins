@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.1.1",
-  "description": "Connect Claude to the Djungle Agent OS. v4.1.1: skill /sota-board crea dashboard live Iniziative & SOTA come artifact persistente nel sidebar Cowork. v4.1.0: agent versioning + marketplace report flow. Backed da 52 MCP tool su agents-api.djungle.io. UI editor + Doc Coach + marketplace browse: agents.djungle.io.",
+  "version": "4.1.2",
+  "description": "Connect Claude to the Djungle Agent OS. v4.1.2 (hotfix): /sota-board dashboard ora con server prefix discovery dinamica (l'UUID Cowork è per-installation, hardcoded rompeva per tenant non-Alessandro). v4.1.1: skill /sota-board crea dashboard live Iniziative & SOTA come artifact persistente. v4.1.0: agent versioning + marketplace report flow. Backed da 52 MCP tool su agents-api.djungle.io.",
   "author": {
     "name": "Djungle",
     "url": "https://djungle.io"

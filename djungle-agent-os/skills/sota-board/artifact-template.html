@@ -491,10 +491,10 @@ footer code {
 <header>
   <div class="title-row">
     <h1>Iniziative & SOTA</h1>
-    <span class="tenant-badge">Djungle</span>
+    <span class="tenant-badge" id="tenant-badge">…</span>
     <span class="live-badge"><span class="live-dot"></span>Live</span>
   </div>
-  <div class="subtitle">Registry vivo del lavoro persistente — Agent OS v3.2.x</div>
+  <div class="subtitle">Registry vivo del lavoro persistente — Agent OS</div>
   <div class="meta-row">
     <span id="fetch-info">Caricamento…</span>
     <button class="btn" id="reload-btn" onclick="loadAll(true)">↻ Aggiorna</button>
@@ -523,7 +523,7 @@ footer code {
 <main id="content">
   <div class="full-loading">
     <div class="spinner"></div>
-    <span>Carico iniziative dal tenant <strong>djungle</strong>…</span>
+    <span>Carico le tue iniziative…</span>
   </div>
 </main>
 
@@ -533,7 +533,25 @@ footer code {
 </footer>
 
 <script>
-const SERVER = 'mcp__01dc3b55-669d-420d-978b-172c610befe4';
+// SERVER prefix discovery (v4.1.2 fix)
+// Il prefix `mcp__<uuid>__` è generato per session per ogni installazione Cowork.
+// Hardcoded UUID rompeva per tenant diversi da Alessandro (es. Giulietta vedeva
+// "Lista iniziative vuota" perché il suo prefix è un altro UUID).
+//
+// Strategy: al primo call prova varianti note in ordine, prima quella che ritorna
+// senza errore vince e viene cached in localStorage. Discovery via introspection
+// di window.cowork se disponibile.
+const SERVER_CACHE_KEY = 'djungle-agent-os-mcp-prefix';
+const KNOWN_SERVER_CANDIDATES = [
+  // Fallback hardcoded (Alessandro's UUID, sopravvive solo se sei lui)
+  'mcp__01dc3b55-669d-420d-978b-172c610befe4',
+  // Plugin name pattern (Cowork potrebbe esporre il plugin direttamente)
+  'mcp__djungle-agent-os',
+  'mcp__plugin_djungle-agent-os',
+  // No-prefix (server di default)
+  ''
+];
+let SERVER = localStorage.getItem(SERVER_CACHE_KEY) || null;
 
 const SOTA_SECTION_LABELS = {
   what_it_is: "Cos'è",
@@ -645,11 +663,61 @@ function unwrapMcp(res, expectKey) {
   return res;
 }
 
+// Discovery: trova il prefix server giusto provando i candidati in sequenza.
+// Cached in localStorage dopo primo successo.
+async function discoverServer(name, args) {
+  for (const candidate of KNOWN_SERVER_CANDIDATES) {
+    const fullName = candidate ? candidate + '__' + name : name;
+    try {
+      const raw = await window.cowork.callMcpTool(fullName, args || {});
+      // Detect error responses (MCP error wrapper)
+      const errLike = raw && (raw.isError === true || raw.error);
+      if (errLike) {
+        console.log('[discoverServer] candidate "' + candidate + '" returned error:', raw);
+        continue;
+      }
+      console.log('[discoverServer] ✓ found working prefix: "' + candidate + '"');
+      SERVER = candidate;
+      localStorage.setItem(SERVER_CACHE_KEY, candidate);
+      return raw;
+    } catch (err) {
+      console.log('[discoverServer] candidate "' + candidate + '" threw:', err.message);
+      continue;
+    }
+  }
+  throw new Error(
+    'Impossibile trovare il server djungle-agent-os tra i candidati noti. ' +
+    'Verifica che il plugin sia installato e connesso. ' +
+    'Candidati provati: ' + KNOWN_SERVER_CANDIDATES.map(c => c || '(no-prefix)').join(', ')
+  );
+}
+
 async function callMcp(name, args, expectKey) {
   if (!window.cowork || !window.cowork.callMcpTool) {
     throw new Error('window.cowork.callMcpTool non disponibile');
   }
-  const raw = await window.cowork.callMcpTool(SERVER + '__' + name, args || {});
+  let raw;
+  if (SERVER === null) {
+    // Prima call: discovery
+    raw = await discoverServer(name, args);
+  } else {
+    const fullName = SERVER ? SERVER + '__' + name : name;
+    try {
+      raw = await window.cowork.callMcpTool(fullName, args || {});
+      // Se cached prefix non funziona più, retry discovery
+      if (raw && (raw.isError === true || raw.error)) {
+        console.warn('[callMcp] cached prefix failed, re-running discovery');
+        localStorage.removeItem(SERVER_CACHE_KEY);
+        SERVER = null;
+        raw = await discoverServer(name, args);
+      }
+    } catch (err) {
+      console.warn('[callMcp] cached prefix threw, re-running discovery:', err.message);
+      localStorage.removeItem(SERVER_CACHE_KEY);
+      SERVER = null;
+      raw = await discoverServer(name, args);
+    }
+  }
   console.log('[' + name + '] raw response:', raw);
   const unwrapped = unwrapMcp(raw, expectKey);
   console.log('[' + name + '] unwrapped:', unwrapped);
@@ -696,7 +764,16 @@ async function loadAll(force) {
     });
 
     fetchInfo.textContent = initiatives.length + ' iniziative · ' + domains.length + ' domini · aggiornato adesso';
-    document.getElementById('footer-meta').textContent = 'Tenant: djungle · Updated: ' + new Date().toLocaleTimeString('it-IT');
+    document.getElementById('footer-meta').textContent = 'Updated: ' + new Date().toLocaleTimeString('it-IT');
+    // Badge tenant: se il server ritorna owner_tenant_slug nelle iniziative lo mostra, altrimenti nascondi
+    const badge = document.getElementById('tenant-badge');
+    const ownerSlug = (initiatives[0] && (initiatives[0].owner_tenant_slug || initiatives[0].tenant_slug)) || null;
+    if (ownerSlug) {
+      badge.textContent = ownerSlug;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
 
     filtersEl.style.display = 'flex';
     renderStats();
