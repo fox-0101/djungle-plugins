@@ -12,7 +12,9 @@ Skill correlate: **/librarian-now** (avvia un run) · **/briefing** (ultimo brie
 
 ## Comportamento
 
-Mostra lo stato del Librarian. Usa il tool MCP `list_librarian_runs` (limit 1) + `list_librarian_alerts` (acknowledged=no).
+Mostra lo stato del Librarian. Usa il tool MCP **`librarian_status`** — ritorna in un colpo solo: `enabled` (abilitato sì/no), schedule, ultimo/prossimo run, conteggio alert pendenti per severity.
+
+⚠️ Per sapere se il Librarian è abilitato usa SEMPRE `librarian_status.enabled`. NON dedurlo da `list_librarian_runs` vuoto: una lista run vuota significa solo "nessun run ancora eseguito", NON "non abilitato". Un tenant appena abilitato ha 0 run finché non parte il primo (schedulato o `/librarian-now`).
 
 Output:
 

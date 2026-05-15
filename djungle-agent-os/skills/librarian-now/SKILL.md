@@ -10,7 +10,9 @@ Avvia immediatamente un consolidation cycle del Librarian, senza aspettare lo sc
 
 ## Comportamento
 
-Chiama il tool MCP `librarian_now`.
+Chiama **direttamente** il tool MCP `librarian_now`. NON pre-controllare lo
+stato con altri tool: se il Librarian non è abilitato, `librarian_now` stesso
+ritorna un errore esplicito. Una lista run vuota NON significa "non abilitato".
 
 Conferma all'utente:
 
