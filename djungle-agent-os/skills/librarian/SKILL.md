@@ -1,16 +1,16 @@
 ---
 name: librarian
 description: |
-  Gestione del Librarian del tenant — l'agente di background che analizza la coerenza della knowledge base e produce briefing periodici. Trigger quando l'utente dice "/librarian", "/librarian-now", "/librarian-status", "/briefing", "fammi vedere il briefing", "stato del librarian", "avvia il librarian", "lancia consolidation". v4.2.0+.
+  Stato del Librarian del tenant — l'agente di background che analizza la coerenza della knowledge base e produce briefing periodici. Trigger quando l'utente dice "/librarian", "stato del librarian", "come va il librarian", "alert del librarian", "cosa ha segnalato il librarian". Per avviare un run usa /librarian-now; per il briefing usa /briefing. v4.2.0+.
 ---
 
-# /librarian — Librarian del tenant (v4.2.0)
+# /librarian — Stato del Librarian (v4.2.0)
 
 Il Librarian è un Anthropic Managed Agent che ogni settimana (+ on-demand) esegue un consolidation cycle a 5 fasi (orient → prune → merge → reorganize → surface) sulla knowledge base del tenant: SOTA, memory logs, sessioni, handoff. Produce un briefing leggibile + alert prioritari su drift, contraddizioni, duplicazioni.
 
-## Sub-commands
+Skill correlate: **/librarian-now** (avvia un run) · **/briefing** (ultimo briefing).
 
-### `/librarian` o `/librarian-status`
+## Comportamento
 
 Mostra lo stato del Librarian. Usa il tool MCP `list_librarian_runs` (limit 1) + `list_librarian_alerts` (acknowledged=no).
 
@@ -35,26 +35,6 @@ Se il Librarian non è abilitato:
 Il Librarian non è abilitato per questo tenant.
 Attivalo da agents.djungle.io/dashboard/settings → sezione Librarian.
 ```
-
-### `/librarian-now`
-
-Avvia un run on-demand. Usa il tool MCP `librarian_now`.
-
-Conferma:
-
-```
-✓ Librarian run avviato (run_id abc12345…).
-Il consolidation cycle gira async — 5-10 minuti.
-Riceverai il briefing in agents.djungle.io/dashboard/librarian al completamento.
-```
-
-Se non abilitato → istruisci ad attivarlo da Settings (il tool ritorna l'errore esplicito).
-
-### `/briefing`
-
-Ritorna il briefing markdown dell'ultimo run completato. Usa il tool MCP `get_briefing` (senza run_id = ultimo run).
-
-Renderizza il markdown del briefing direttamente in chat. Se non c'è alcun run completato, spiega che il primo run deve ancora girare (`/librarian-now` per avviarlo).
 
 ### Mostrare gli alert in dettaglio
 
