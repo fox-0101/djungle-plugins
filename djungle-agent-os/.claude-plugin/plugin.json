@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.1.3",
-  "description": "Connect Claude to the Djungle Agent OS. v4.1.3: icon Djungle violet per il connector in Cowork (no più placeholder generico). v4.1.2 (hotfix): /sota-board dashboard ora con server prefix discovery dinamica. v4.1.1: skill /sota-board crea dashboard live Iniziative & SOTA come artifact persistente. v4.1.0: agent versioning + marketplace report flow. Backed da 52 MCP tool su agents-api.djungle.io.",
+  "version": "4.2.0",
+  "description": "Connect Claude to the Djungle Agent OS. v4.2.0: Librarian — agente di background (Anthropic Managed Agent) che analizza coerenza della knowledge base e produce briefing weekly con alert su drift/contraddizioni/duplicazioni. Skill /librarian. v4.1.x: custom agents UI, marketplace, /sota-board, agent versioning. Backed da 68 MCP tool su agents-api.djungle.io.",
   "icon": "./icon.png",
   "author": {
     "name": "Djungle",

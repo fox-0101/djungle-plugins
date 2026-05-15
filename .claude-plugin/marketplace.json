@@ -9,8 +9,8 @@
     {
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
-      "description": "Connect Claude to the Djungle Agent OS. v4.1.3: icon Djungle violet nel sidebar Cowork. v4.1.2 hotfix: dashboard /sota-board con server discovery dinamica. v4.1: agent versioning + marketplace report flow + dashboard live. Self-service portal su agents.djungle.io con editor custom agents + Doc Coach AI assistant.",
-      "version": "4.1.3",
+      "description": "Connect Claude to the Djungle Agent OS. v4.2.0: Librarian — briefing weekly automatico con alert su drift/contraddizioni/duplicazioni della knowledge base (skill /librarian). v4.1.x: custom agents UI, marketplace, /sota-board dashboard, agent versioning. Self-service portal su agents.djungle.io.",
+      "version": "4.2.0",
       "icon": "./djungle-agent-os/icon.png",
       "author": { "name": "Djungle" },
       "keywords": ["agents", "notion", "agent-os", "djungle", "mcp"]
