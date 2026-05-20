@@ -10,7 +10,7 @@
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
       "description": "Connect Claude to the Djungle Agent OS. v4.4.0: user-aware auth — Personal API Key valida su tutti i tuoi tenant, switch fluido in Cowork via /tenant switch (set_active_tenant). v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian — briefing weekly automatico con alert. v4.1.x: custom agents UI, marketplace, /sota-board dashboard, agent versioning. Self-service portal su agents.djungle.io.",
-      "version": "4.4.0",
+      "version": "4.4.1",
       "icon": "./djungle-agent-os/icon.png",
       "author": { "name": "Djungle" },
       "keywords": ["agents", "notion", "agent-os", "djungle", "mcp"]
