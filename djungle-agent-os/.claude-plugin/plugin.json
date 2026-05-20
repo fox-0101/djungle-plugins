@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.3.0",
-  "description": "Connect Claude to the Djungle Agent OS. v4.3.0: self multi-tenant — un user può possedere/usare N tenant isolati, switcher nel portal + skill /tenant. v4.2.x: Librarian — briefing weekly automatico con alert su drift/contraddizioni/duplicazioni (/librarian, /librarian-now, /briefing). v4.1.x: custom agents UI, marketplace, /sota-board, agent versioning. Backed da 70 MCP tool su agents-api.djungle.io.",
+  "version": "4.4.0",
+  "description": "Connect Claude to the Djungle Agent OS. v4.4.0: user-aware auth — Personal API Key (aos_u_) valida su tutti i tuoi tenant, switch fluido in Cowork via /tenant switch (set_active_tenant MCP). v4.3.x: self multi-tenant + brand emoji + skill /tenant. v4.2.x: Librarian — briefing weekly con alert. v4.1.x: custom agents UI, marketplace, /sota-board. Backed da 73 MCP tool su agents-api.djungle.io.",
   "icon": "./icon.png",
   "author": {
     "name": "Djungle",

@@ -1,76 +1,91 @@
 ---
 name: tenant
 description: |
-  Gestione multi-tenant di Agent OS — un user può possedere/appartenere a N tenant (workspace isolati). Trigger quando l'utente dice "/tenant", "/tenant list", "/tenant switch <slug>", "che tenant sto usando", "su quale tenant sono", "cambia tenant", "crea un nuovo tenant", "gestisci i miei tenant". v4.3.0+.
+  Gestione multi-tenant di Agent OS — un user può possedere/usare N tenant. v4.4.0: switch fluido in Cowork via MCP (richiede Personal API Key user-scoped). Trigger quando l'utente dice "/tenant", "/tenant list", "/tenant switch <slug>", "/tenant status", "che tenant sto usando", "su quale tenant sono", "cambia tenant a X", "switcha a X". v4.4.0+.
 ---
 
-# /tenant — Multi-tenant Agent OS (v4.3.0)
+# /tenant — Multi-tenant Agent OS (v4.4.0)
 
-Un user di Agent OS può avere **N tenant**: workspace completamente isolati
-(API key, agenti, iniziative, memorie, Librarian — tutto separato per RLS).
-Casi tipici: holding con più società, consulenti multi-cliente, separazione
-business/personal.
+Un user può avere **N tenant** (workspace isolati: API key, agenti, iniziative,
+memorie, Librarian, tutto separato per RLS). v4.4.0 sblocca lo **switch fluido
+in Cowork** via MCP tool, senza dover toccare l'API key del connettore.
 
-## Modello — due contesti indipendenti
+## Modello auth
 
-| Contesto | Dove si gestisce | Cosa controlla |
+Due tipi di API key:
+
+| Tipo | Prefix | Comportamento |
 |---|---|---|
-| **Tenant attivo nel portal** | `agents.djungle.io/dashboard/tenants` | Cosa vedi nella dashboard web (cookie `active_tenant_id`) |
-| **Tenant attivo in Cowork** | Connettore MCP `djungle-agent-os` | Su quale tenant operano le skill/tool in chat (l'API key del connettore) |
+| **Tenant-scoped** (legacy) | `aos_<...>` | Una key = un tenant fisso. Per cambiare tenant cambi la key nel connettore. |
+| **Personal** (user-scoped, v4.4+) | `aos_u_<...>` | Una key sola per tutti i tuoi tenant. Switchi via `/tenant switch <slug>`. |
 
-I due sono **indipendenti per design**: puoi avere il portal su un tenant e
-Cowork su un altro — due contesti operativi paralleli, non è un bug.
+Genera/sostituisci la Personal Key da `agents.djungle.io/dashboard/api-keys`.
+Raccomandata se hai 2+ tenant.
 
-## Comportamento della skill
+## Comportamento
 
-### `/tenant` o `/tenant list`
+### `/tenant` o `/tenant status`
 
-Cowork opera sul tenant identificato dall'**API key del connettore MCP**.
-Per sapere quali tenant possiedi e qual è il default, apri
-`agents.djungle.io/dashboard/tenants` — lì vedi la lista completa con ruolo
-(owner/member), tenant attivo e default.
+Chiama il tool MCP **`get_active_tenant`** → ritorna slug, nome, brand emoji,
+ruolo, chi ha settato l'attivo (portal / cowork / default) e quando.
 
-Mostra all'utente:
+Output:
+```
+{emoji} {nome} ({slug}) — sei {ruolo}
+Settato da: {set_by} · {set_at}
+```
+
+### `/tenant list`
+
+Chiama **`list_my_tenants`** → mostra tutti i tenant dell'user con emoji,
+ruolo, default (★), attivo (✓):
 
 ```
-I tuoi tenant si gestiscono dal portal:
-  agents.djungle.io/dashboard/tenants
+✓ 🔵 Djungle Holding (djungle) — owner ★
+  🟠 FNX (fnx) — owner
+  🟣 Acme Spa (acme) — member
 
-Cowork opera sul tenant della API key configurata nel connettore
-djungle-agent-os. Per cambiare tenant in Cowork → /tenant switch.
+Switch: /tenant switch <slug>
 ```
 
 ### `/tenant switch <slug>`
 
-Cowork punta a un tenant tramite l'**API key** del connettore MCP. Per
-switchare il tenant attivo in Cowork:
+Chiama **`set_active_tenant({ tenant_slug: <slug>, set_by: "cowork" })`** →
+server UPSERT su `user_active_tenant` → le **prossime** chiamate MCP useranno
+quel tenant automaticamente.
 
-1. Apri `agents.djungle.io/dashboard/tenants` e attiva il tenant desiderato
-2. Vai in `agents.djungle.io/dashboard/api-keys` di quel tenant e copia/genera la sua API key
-3. In Cowork: **Customize → Connettori → djungle-agent-os** → incolla la API key del nuovo tenant
-4. Le nuove chiamate MCP opereranno sul tenant scelto
+Conferma:
+```
+✓ Switchato su {emoji} {nome}.
+Le prossime invocazioni agenti, /sota, /briefing ecc. opereranno su {slug}.
+```
 
-Spiega questi passi all'utente — la skill **non** può cambiare l'API key del
-connettore da sola (è gestita dalla UI connettori di Cowork).
+Errori frequenti:
+- **"Non sei membro di X"** → non hai una membership su quel tenant.
+- **"User-scoped API keys are disabled"** → il server ha il flag spento,
+  contatta l'admin.
+- **"Questo tool richiede un user reale"** → stai usando una tenant-scoped
+  key. Genera una Personal Key dal portal per abilitare lo switch fluido.
 
-### `/tenant create` / "crea un nuovo tenant"
+### Sincronia portal ↔ Cowork
 
-La creazione di un tenant si fa dal portal:
-`agents.djungle.io/dashboard/tenants/new`. Compili nome + slug + tipo, ottieni
-subito la API key `primary` del nuovo tenant (mostrata una sola volta).
+Single source of truth: `user_active_tenant` su Supabase. Switch fatto nel
+portal propaga al next MCP call da Cowork e viceversa. Niente cookie
+cross-domain, niente race.
 
 ## Cosa NON fa
 
-- ❌ Non cambia da sola l'API key del connettore Cowork (UI connettori).
-- ❌ Non crea tenant via MCP — la creazione è nel portal (serve magic-link auth).
-- ❌ Non mostra dati cross-tenant insieme — ogni tenant è isolato per privacy.
+- ❌ Non crea tenant — la creazione è nel portal (serve magic-link auth).
+- ❌ Non cambia da sola l'API key del connettore Cowork — quello è UI Cowork.
+- ❌ Non mostra dati cross-tenant insieme — isolamento per privacy.
 
 ## Note
 
-- Owner vs member: chi crea un tenant ne è **owner** (può generare API key,
-  gestire agenti, abilitare il Librarian). Un **member** ha accesso operativo
-  ma non amministrativo.
-- Tenant di default: quello che vedi all'accesso al portal prima di switchare.
-  Si imposta da `/dashboard/tenants`.
-- B2B invitations (owner che invita altri user al suo tenant) — non ancora
-  disponibile, previste in v4.4.0.
+- Owner vs member: chi crea un tenant ne è owner (può gestire agenti,
+  generare API key, abilitare Librarian). Member = accesso operativo, non
+  amministrativo.
+- Tenant di default: quello attivato all'accesso iniziale, se non hai
+  switchato esplicitamente. Si setta da `/dashboard/tenants`.
+- Override una-tantum: passare l'header HTTP `X-Tenant-Override: <slug>` a
+  una chiamata MCP forza quel tenant solo per quella richiesta (non altera
+  user_active_tenant). Utile per integrazioni puntuali.
