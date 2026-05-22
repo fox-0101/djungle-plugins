@@ -3,7 +3,9 @@
     "djungle-agent-os": {
       "type": "http",
       "url": "https://agents-api.djungle.io/mcp",
-      "authProviderType": "oauth"
+      "oauth": {
+        "scopes": "mcp"
+      }
     }
   }
 }
