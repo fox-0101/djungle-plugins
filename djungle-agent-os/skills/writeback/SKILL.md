@@ -16,6 +16,14 @@ Close the loop on every agent session. Pipeline:
 
 Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
 
+> **v4.6.0 — il `/wb` è ora l'override manuale.** Da v4.6 il writeback è
+> automatico (ADR-008b): cambiando agente o lasciando idle la sessione, il
+> server la chiude e digerisce da solo, applicando la commit policy del tenant
+> (HIGH → SOTA, MEDIUM → coda `/review-queue`). `/wb` resta per chi vuole
+> chiudere e rivedere **subito**, con controllo pieno sui delta — è il path
+> interattivo qui descritto. La maggior parte delle sessioni non ha più bisogno
+> di un `/wb` esplicito.
+
 > **v4.5.0 — cambio architetturale (ADR-008a).** Fino alla v4.4 la cattura
 > dei fact dipendeva dall'agente che chiamava `scribe_capture` in-prompt dopo
 > ogni turno. Non funzionava (cattura nel ~1,85% delle sessioni). Ora la

@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.5.0",
-  "description": "Connect Claude to the Djungle Agent OS. v4.5.0: Scribe autonomo — Session Digestion server-side (scribe_digest) estrae i fact dal transcript al /wb con Haiku, niente più cattura in-prompt inaffidabile. v4.4.x: user-aware auth, Personal API Key, switch tenant /tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents UI, marketplace, /sota-board. Backed da 74 MCP tool su agents-api.djungle.io.",
+  "version": "4.6.0",
+  "description": "Connect Claude to the Djungle Agent OS. v4.6.0: writeback automatico — le sessioni si chiudono e digeriscono da sole (Trigger B su /invoke + idle-sweep), fact HIGH auto in SOTA, MEDIUM in /review-queue. v4.5.0: Scribe autonomo (Session Digestion). v4.4.x: user-aware auth, Personal API Key, switch tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents UI, marketplace. Backed da 77 MCP tool su agents-api.djungle.io.",
   "icon": "./icon.png",
   "author": {
     "name": "Djungle",

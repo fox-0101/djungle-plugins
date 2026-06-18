@@ -51,6 +51,34 @@ If found, pass it as `initiative_input` (free text, NOT a slug — the server re
 
 If no clear initiative is mentioned, omit `initiative_input` and the agent runs without initiative context. That's fine — the user can switch later with `/sota <slug>` or by referencing it in the next prompt.
 
+### 2.6. Auto-writeback della sessione precedente (v4.6.0, Trigger B)
+
+Se in **questa stessa chat Cowork** hai già invocato un altro agente prima (esiste
+un `session_id` precedente nel contesto della conversazione), prima di invocare
+il nuovo agente **digerisci e chiudi** quella sessione:
+
+```
+close_and_digest({
+  session_id: "<session_id precedente>",
+  trigger: "new_invoke",
+  transcript: [ { role:"user", content:"..." }, { role:"agent", content:"..." }, ... ]
+})
+```
+
+- Costruisci `transcript` dai turni della sessione precedente in questa chat.
+- Il server digerisce + applica la commit policy del tenant:
+  HIGH → SOTA in automatico, MEDIUM → review_queue (li vedi con `/review-queue`),
+  LOW → scartato. Non blocca: non serve conferma utente per i HIGH.
+- Risposta: `{ facts_extracted, auto_committed, queued_for_review, commit_policy }`.
+  Mostra una riga sintetica: "💾 Sessione con <Agente precedente> salvata —
+  N fatti, M auto-applicati, K in coda review".
+- **Idempotente**: se la sessione era già stata chiusa (es. con `/wb`), è un no-op.
+
+Se è la prima invoke della chat (nessuna sessione precedente), salta questo step.
+Nota: il server chiude comunque le sessioni precedenti rimaste aperte come safety
+net, ma senza il transcript NON le digerisce — per questo è importante che la
+skill passi il transcript qui.
+
 ### 3. Call `invoke_agent` (single call)
 
 ```

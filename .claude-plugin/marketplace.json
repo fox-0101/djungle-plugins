@@ -9,8 +9,8 @@
     {
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
-      "description": "Connect Claude to the Djungle Agent OS. v4.5.0: Scribe autonomo — Session Digestion server-side (scribe_digest) estrae i fact dal transcript al /wb con Haiku. v4.4.x: user-aware auth, Personal API Key, switch tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents UI, marketplace, /sota-board, agent versioning. Self-service portal su agents.djungle.io.",
-      "version": "4.5.0",
+      "description": "Connect Claude to the Djungle Agent OS. v4.6.0: writeback automatico — sessioni chiuse e digerite da sole, fact HIGH auto in SOTA, MEDIUM in /review-queue. v4.5.0: Scribe autonomo. v4.4.x: user-aware auth, switch tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents, marketplace, /sota-board. Self-service portal su agents.djungle.io.",
+      "version": "4.6.0",
       "icon": "./djungle-agent-os/icon.png",
       "author": { "name": "Djungle" },
       "keywords": ["agents", "notion", "agent-os", "djungle", "mcp"]
