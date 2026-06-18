@@ -1,20 +1,28 @@
 ---
 name: writeback
 description: |
-  Session writeback command for Agent OS. Use this skill whenever the user says "/writeback", "writeback", "salva sessione", "chiudi sessione", "session log", "wb", or any variation of wanting to save/log what happened during an agent session. This is the WRITEBACK step of the Agent OS flow (INVOKE > CHAT > WRITEBACK > EVOLVE). v3.3.0 introduce la pipeline Auto-SOTA: review batch dei fact catturati dallo Scribe in background, commit con conferma utente.
+  Session writeback command for Agent OS. Use this skill whenever the user says "/writeback", "writeback", "salva sessione", "chiudi sessione", "session log", "wb", or any variation of wanting to save/log what happened during an agent session. This is the WRITEBACK step of the Agent OS flow (INVOKE > CHAT > WRITEBACK > EVOLVE). v4.5.0 introduce la Session Digestion server-side (scribe_digest): la cattura dei fact non dipende più dall'agente in-prompt — il server estrae i fact dal transcript completo con Haiku al momento del /wb, poi review + commit con conferma utente.
 ---
 
-# Writeback — Agent OS Session Logger (v3.3.0)
+# Writeback — Agent OS Session Logger (v4.5.0)
 
-Close the loop on every agent session. Pipeline a 5 step:
+Close the loop on every agent session. Pipeline:
 
 1. **Close** — chiudi session con summary
-2. **Load** — leggi buffer Scribe della session
-3. **Compute** — preview delta SOTA per ogni iniziativa toccata
+2. **Memory logs** — cross-post selettivo
+3. **Digest** — `scribe_digest` estrae i fact dal transcript completo (v4.5.0)
 4. **Review** — l'utente conferma / scarta / review puntuale
 5. **Commit** — apply tutto in transazione, audit log
 
 Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
+
+> **v4.5.0 — cambio architetturale (ADR-008a).** Fino alla v4.4 la cattura
+> dei fact dipendeva dall'agente che chiamava `scribe_capture` in-prompt dopo
+> ogni turno. Non funzionava (cattura nel ~1,85% delle sessioni). Ora la
+> cattura è **server-side e deterministica**: al `/wb` chiami `scribe_digest`
+> passando il transcript completo della conversazione → il server estrae i
+> fact con Haiku 4.5 → popola il buffer → poi `scribe_review` lo legge. La
+> cattura è garantita, non più sperata.
 
 ## Cosa cattura il writeback
 
@@ -33,9 +41,13 @@ Analizzi la conversazione ed estrai contenuto per 6 categorie:
 
 Il summary va in `close_session({summary})`. Cross-post selettivo in `write_memory_log` per le righe che vuoi recuperare alla prossima invocazione.
 
-### B — Scribe buffer (v3.3.0+)
+### B — Scribe buffer via Session Digestion (v4.5.0+)
 
-Durante la chat l'agente ha bufferizzato in background ogni **fact dell'utente** (8 tipi: stage_change, move_done, decision, open_loop_new/closed, reference, metric, next_action_change). Questo buffer **non è ancora applicato alle SOTA** — il `/wb` è il momento del commit. Vedi **Step 2-5** sotto.
+Al `/wb` chiami `scribe_digest` passando il **transcript completo** della
+conversazione. Il server estrae i **fact** (8 tipi: stage_change, move_done,
+decision, open_loop_new/closed, reference, metric, next_action_change) con
+Haiku 4.5, applica confidence gating, e popola il buffer pending della
+session. Poi `scribe_review` lo legge e l'utente conferma. Vedi **Step 3.5-5**.
 
 ## Step-by-step
 
@@ -80,7 +92,41 @@ Heuristic: "voglio vedere questo prima della prossima sessione su questa iniziat
 
 > **Nota v3.2.1 fix:** `initiative_id` deve sempre essere propagato dalla session se esiste, altrimenti il record è orfano e il Probe non lo vede.
 
-### Step 4 — Load Scribe buffer (v3.3.0+)
+### Step 3.5 — Digest del transcript (v4.5.0, OBBLIGATORIO prima del review)
+
+Questo è il cuore della v4.5.0. Prima di leggere il buffer, **digerisci** il
+transcript della conversazione corrente. Costruisci l'array `transcript`
+dai messaggi della chat (i turni dell'utente e dell'agente in questa
+sessione) e chiama:
+
+```
+scribe_digest({
+  session_id: "<uuid>",
+  agent_id: "<session.agent_id>",     // es. "AGT-2"
+  transcript: [
+    { role: "user",  content: "<messaggio utente 1>" },
+    { role: "agent", content: "<risposta agente 1>" },
+    { role: "user",  content: "<messaggio utente 2>" },
+    ...
+  ]
+})
+```
+
+Response: `{ facts_extracted, buffer_id, facts[], skipped? }`.
+
+- Includi **tutti** i turni rilevanti della sessione corrente, in ordine.
+  Il server vede il transcript completo → disambigua meglio (es. un loop
+  aperto e poi chiuso nella stessa chat si annulla).
+- Il server estrae, applica confidence gating (scarta `low`), e popola il
+  buffer pending. È **idempotente**: se la session è già digerita
+  (`skipped: "already_digested"`), ritorna il buffer esistente.
+- Se `skipped: "digest_failed"` (timeout Haiku, ecc.): procedi comunque —
+  il `/wb` non si blocca. Comunica all'utente che la digestione non è
+  riuscita e che può rifare `/wb`.
+
+Dopo `scribe_digest`, il buffer è popolato → procedi a Step 4.
+
+### Step 4 — Load Scribe buffer
 
 ```
 scribe_review({ session_id: "<uuid>" })
@@ -172,7 +218,8 @@ Se errori in commit: list `errors[]` con `fact_index` e messaggio.
 - Il summary della session è la single source of truth — accurato, non lusinghiero.
 - Cross-posting memory_log selettivo: quality over quantity.
 - **v3.2.1: SEMPRE propaga `initiative_id` ai memory_logs se la session l'aveva.** Bug evitato.
-- **v3.3.0: la pipeline Scribe è il modo principale di aggiornare le SOTA.** Niente più `/sota-update` manuale dopo ogni sessione — lo fa il wb.
+- **v4.5.0: la cattura è server-side via `scribe_digest`.** NON aspettarti che il buffer sia già popolato all'arrivo del `/wb` — devi chiamare `scribe_digest` col transcript completo (Step 3.5) PRIMA di `scribe_review`. È questo il fix del bug "Scribe vuoto": non dipendere più dalla cattura in-prompt durante la chat.
+- **La pipeline Scribe è il modo principale di aggiornare le SOTA.** Niente più `/sota-update` manuale dopo ogni sessione — lo fa il wb.
 - Se l'MCP server ritorna 401, OAuth scaduto: l'utente deve disconnettere/riconnettere il connettore (Customize → Plugin → Connectors → Djungle agent os). Magic-link < 1 min, no env vars in v3+.
 - Se `buffer_id` non esiste (es. sessione senza fact catturati, oppure tutti scartati con confidence=low), Step 4-5 si saltano silenziosamente.
 
