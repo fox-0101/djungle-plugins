@@ -17,12 +17,17 @@ Close the loop on every agent session. Pipeline:
 Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
 
 > **v4.6.0 — il `/wb` è ora l'override manuale.** Da v4.6 il writeback è
-> automatico (ADR-008b): cambiando agente o lasciando idle la sessione, il
-> server la chiude e digerisce da solo, applicando la commit policy del tenant
-> (HIGH → SOTA, MEDIUM → coda `/review-queue`). `/wb` resta per chi vuole
-> chiudere e rivedere **subito**, con controllo pieno sui delta — è il path
-> interattivo qui descritto. La maggior parte delle sessioni non ha più bisogno
-> di un `/wb` esplicito.
+> automatico e **hook-driven** (ADR-008b rev.2): un hook `Stop` del plugin
+> scatta dopo ogni risposta dell'agente e chiama `digest_turn` col delta del
+> transcript → il server estrae i fact e applica la commit policy del tenant
+> (HIGH → SOTA, MEDIUM → coda `/review-queue`, LOW scartato). Deterministico,
+> per-turno, in ogni chat, senza che l'utente faccia nulla. `/wb` resta per chi
+> vuole chiudere e rivedere **subito** con controllo pieno — è il path
+> interattivo qui descritto. La gran parte delle sessioni non ha più bisogno di
+> un `/wb` esplicito.
+>
+> Richiede: Personal API Key configurata nel plugin (userConfig `api_key`).
+> Fuori da Cowork (web/desktop) gli hook non scattano → resta il `/wb` manuale.
 
 > **v4.5.0 — cambio architetturale (ADR-008a).** Fino alla v4.4 la cattura
 > dei fact dipendeva dall'agente che chiamava `scribe_capture` in-prompt dopo

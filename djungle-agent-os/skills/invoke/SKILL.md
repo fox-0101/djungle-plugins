@@ -53,6 +53,12 @@ If no clear initiative is mentioned, omit `initiative_input` and the agent runs 
 
 ### 2.6. Auto-writeback della sessione precedente (v4.6.0, Trigger B)
 
+> **Nota v4.6.0 rev.2:** la cattura primaria è ora l'hook `Stop` del plugin,
+> che digerisce ogni turno in automatico (`digest_turn`). Questo step resta
+> come finalizer esplicito quando, **nella stessa chat**, passi da un agente a
+> un altro — chiude la sessione precedente. Nel modello multi-chat (una chat
+> per agente) capita di rado; l'hook copre già la cattura turno-per-turno.
+
 Se in **questa stessa chat Cowork** hai già invocato un altro agente prima (esiste
 un `session_id` precedente nel contesto della conversazione), prima di invocare
 il nuovo agente **digerisci e chiudi** quella sessione:
