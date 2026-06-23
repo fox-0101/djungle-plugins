@@ -30,14 +30,16 @@ TRANSCRIPT_PATH="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/d
 COWORK_SID="$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)"
 [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] && exit 0
 
-# DB session_id: l'ultimo UUID emesso da invoke_agent nel transcript
-# (il tool result contiene "session_id":"<uuid>"). Prendiamo l'ultimo.
-DB_SID="$(grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[0-9a-fA-F-]{36}"' "$TRANSCRIPT_PATH" 2>/dev/null \
-  | tail -n1 | grep -oE '[0-9a-fA-F-]{36}' || true)"
+# DB session_id: l'ultimo UUID emesso da invoke_agent nel transcript.
+# NB: nel JSONL di Cowork il tool result è doppio-codificato → le virgolette
+# sono escapate (\"session_id\": \"<uuid>\"). Il backslash opzionale (\\?)
+# matcha sia la forma escapata sia quella pulita.
+DB_SID="$(grep -oE 'session_id\\?"[[:space:]]*:[[:space:]]*\\?"[0-9a-fA-F-]{36}' "$TRANSCRIPT_PATH" 2>/dev/null \
+  | tail -n1 | grep -oE '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' || true)"
 [ -z "$DB_SID" ] && exit 0
 
-# agent_id: ultimo "agent_id":"AGT-N" nel transcript (default AGT-0)
-AGENT_ID="$(grep -oE '"agent_id"[[:space:]]*:[[:space:]]*"AGT-[0-9]+"' "$TRANSCRIPT_PATH" 2>/dev/null \
+# agent_id: ultimo "agent_id":"AGT-N" nel transcript (escaped o no; default AGT-0)
+AGENT_ID="$(grep -oE 'agent_id\\?"[[:space:]]*:[[:space:]]*\\?"AGT-[0-9]+' "$TRANSCRIPT_PATH" 2>/dev/null \
   | tail -n1 | grep -oE 'AGT-[0-9]+' || true)"
 [ -z "$AGENT_ID" ] && AGENT_ID="AGT-0"
 

@@ -23,8 +23,10 @@ INPUT="$(cat 2>/dev/null || true)"
 TRANSCRIPT_PATH="$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)"
 [ -z "$TRANSCRIPT_PATH" ] || [ ! -f "$TRANSCRIPT_PATH" ] && exit 0
 
-DB_SID="$(grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[0-9a-fA-F-]{36}"' "$TRANSCRIPT_PATH" 2>/dev/null \
-  | tail -n1 | grep -oE '[0-9a-fA-F-]{36}' || true)"
+# NB: JSONL Cowork doppio-codificato → virgolette escapate (\"session_id\":...).
+# Il backslash opzionale (\\?) matcha sia escaped sia pulito.
+DB_SID="$(grep -oE 'session_id\\?"[[:space:]]*:[[:space:]]*\\?"[0-9a-fA-F-]{36}' "$TRANSCRIPT_PATH" 2>/dev/null \
+  | tail -n1 | grep -oE '[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}' || true)"
 [ -z "$DB_SID" ] && exit 0
 
 # close_and_digest senza transcript → solo chiusura (la cattura è già fatta).

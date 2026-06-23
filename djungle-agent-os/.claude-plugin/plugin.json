@@ -1,7 +1,7 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.6.0",
-  "description": "Connect Claude to the Djungle Agent OS. v4.6.0: writeback automatico hook-driven — l'hook Stop digerisce ogni turno (digest_turn), fact HIGH auto in SOTA, MEDIUM in /review-queue. v4.5.0: Scribe autonomo (Session Digestion). v4.4.x: user-aware auth, Personal API Key, switch tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents UI, marketplace. Backed da 78 MCP tool su agents-api.djungle.io.",
+  "version": "4.6.1",
+  "description": "Connect Claude to the Djungle Agent OS. v4.6.1: fix cattura — estrazione session_id dal transcript Cowork (virgolette escapate). v4.6.0: writeback automatico hook-driven — l'hook Stop digerisce ogni turno (digest_turn), fact HIGH auto in SOTA, MEDIUM in /review-queue. v4.5.0: Scribe autonomo (Session Digestion). v4.4.x: user-aware auth, Personal API Key, switch tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents UI, marketplace. Backed da 78 MCP tool su agents-api.djungle.io.",
   "icon": "./icon.png",
   "author": {
     "name": "Djungle",
