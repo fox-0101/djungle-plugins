@@ -73,7 +73,7 @@ Dal payload `invoke_agent` salvato all'apertura della session:
 - `session.initiative_id` (UUID, v3.2.0+) — `resolved_initiative.id`. Null se la session non era legata a iniziativa
 - `touched_initiatives[]` — eventuali iniziative cross-touched durante la chat (build dalla conversazione)
 
-Se `session_id` non recuperabile (utente ha invocato fuori da Cowork), salta Step 4 (close_session) e fai solo write_memory_log + chiedi all'utente lo slug iniziativa per i memory_log.
+Il `session_id` si recupera dal **marcatore `agentos-session`** nel transcript (l'ultimo vince) — formato e recupero in `skills/_shared/session-threading.md`. Se il marcatore manca: `list_open_sessions` (proponi all'utente, aspetta conferma); se non ci sono sessioni aperte: fermati con "nessuna sessione attiva: apri con `/invoke <agente>` e ripeti". NIENTE percorsi degradati: dal server ≥4.12.1 ogni write senza `session_id` viene rifiutata (ADR-014a).
 
 ### Step 2 — Close session
 
@@ -92,6 +92,7 @@ Per ogni learning/decision/feedback/evolution di alto valore:
 
 ```
 write_memory_log({
+  session_id: "<session_id>",                    // REQUIRED (ADR-014a) — dal marcatore
   agent_id: "<session.agent_id>",
   type: "learning",
   content: "...",

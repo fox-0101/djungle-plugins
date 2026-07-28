@@ -23,6 +23,19 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 - **`dialog_required`** — true if the resolver needs a user choice (ambiguous match or new-initiative classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
 - **`pending_scribe_buffers`** (v3.3.0+) — buffer Scribe ancora pending dell'utente (escluso il buffer della session appena creata). Se non vuoto, vedi Step 3.7 — recovery dialog prima di partire col task.
 
+
+> **Marcatore di sessione (ADR-014b, v4.7.0 — OBBLIGATORIO).** Subito dopo ogni
+> `invoke_agent` riuscito, emetti nella tua risposta UNA riga a formato fisso:
+>
+> `<!-- agentos-session id=<session_id> code=<session_code> tenant=<tenant-slug> agent=<agent-slug> -->`
+>
+> Formato letterale, regole ed estrazione: `skills/_shared/session-threading.md`
+> (fonte unica — non riparafrasare). Niente virgolette attorno ai valori, campi
+> sempre in quest'ordine. Il tenant è quello attivo mostrato in pre-flight.
+> Emettila ANCHE quando `dialog_required` si risolve e la sessione nasce al
+> secondo giro di `invoke_agent`. È la fonte del `session_id` per tutte le
+> skill di scrittura e per gli hook: senza marcatore, le write falliscono.
+
 ## Step-by-step
 
 ### 1. Identify the agent

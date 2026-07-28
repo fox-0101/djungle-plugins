@@ -142,7 +142,7 @@ Handoff HND-0042 creato.
   Lora lo riceverà in pending_handoffs[] alla prossima /invoke lora.
 ```
 
-Se `session_id` non disponibile (rara): segnalare esplicitamente "handoff orfano dalla session — solo DB".
+Se `session_id` non disponibile: recupero da `skills/_shared/session-threading.md` (marcatore → `list_open_sessions` con conferma → errore "nessuna sessione attiva: apri con `/invoke <agente>` e ripeti"). L'handoff orfano NON è più producibile: il server ≥4.12.1 lo rifiuta (ADR-014a).
 Se `initiative_id` non disponibile: segnalare "non linkato a iniziativa — non apparirà in /probe".
 Se mirror fallito: segnalare path tentato + ragione.
 
@@ -170,7 +170,7 @@ Returns timeline `change_type`, `changed_by`, `ts`, `diff_summary`.
 ## What NOT to do
 
 - ❌ **NON inventare un `from_agent` diverso da `session.agent_id`.** Mai. Anche se "narrativamente sembrerebbe più appropriato". L'attribution è fattuale, non narrativa.
-- ❌ NON omettere `session_id` se la session esiste — perde causalità.
+- ❌ NON omettere `session_id` — il server lo rifiuta (ADR-014a) e senza si perde causalità.
 - ❌ NON omettere `initiative_slug` se `session.initiative_id` esiste — handoff diventa invisibile al Probe dell'iniziativa.
 - ❌ NON scrivere il mirror a un path custom — sempre `~/Documents/Claude/<tenant_slug>-context/<file_path>`. Se non sei sicuro dove sei, applica i guard `startswith` prima del write.
 - ❌ NON inferire `tenant_slug` da `cwd`, dal nome del progetto Cowork, o dal filename. Per Djungle è sempre `djungle`.

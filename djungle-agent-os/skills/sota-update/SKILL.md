@@ -15,6 +15,9 @@ Persist a SOTA section UPSERT on `(tenant_id, parent_type, parent_id, section_na
 - "scrivi nelle next_action di BP: ..."
 - The active agent says "vorrei aggiornare la SOTA con X" — propose to the user, then call.
 
+
+> **Sessione (ADR-014b):** questa è una scrittura session-scoped. Il `session_id` si recupera dal marcatore `agentos-session` nel transcript (l'ultimo vince) — formato e recupero in `skills/_shared/session-threading.md`. Marcatore assente → `list_open_sessions` e proponi all'utente; nessuna sessione → fermati con "nessuna sessione attiva: apri con `/invoke <agente>` e ripeti".
+
 ## Step-by-step
 
 ### 1. Identify target
@@ -39,6 +42,7 @@ If user gave a high-level instruction ("aggiorna current_state di Bridge"), draf
 
 ```
 update_sota_section({
+  session_id: "<session_id>",           // REQUIRED (ADR-014a) — dal marcatore agentos-session
   initiative_slug: "storytelling-ai",
   section_name: "current_state",
   content_md: "MVP in test con 3 famiglie...",
