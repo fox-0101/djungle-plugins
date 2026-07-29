@@ -6,6 +6,11 @@ description: |
 
 # /briefing — Briefing del Librarian (v4.2.0)
 
+> **Sessione sulle letture (ADR-014b / B9).** Passa `session_id` a ogni chiamata
+> di lettura: senza, si legge dal tenant attivo — che può essere un altro
+> workspace. Recupero e formato del marcatore: `skills/_shared/session-threading.md`.
+> Controlla il `tenant_slug` in risposta: se non è quello della sessione, fermati.
+
 Mostra il briefing markdown dell'ultimo run completato del Librarian.
 
 ## Comportamento

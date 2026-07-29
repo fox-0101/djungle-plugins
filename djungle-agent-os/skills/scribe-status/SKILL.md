@@ -6,6 +6,11 @@ description: |
 
 # Scribe Status — read-only buffer inspection (v3.3.0)
 
+> **Sessione sulle letture (ADR-014b / B9).** Passa `session_id` a ogni chiamata
+> di lettura: senza, si legge dal tenant attivo — che può essere un altro
+> workspace. Recupero e formato del marcatore: `skills/_shared/session-threading.md`.
+> Controlla il `tenant_slug` in risposta: se non è quello della sessione, fermati.
+
 Mostra cosa lo Scribe ha catturato finora nella session corrente (o ultime N pending dell'utente). **Read-only**: nessuna modifica, nessuna conferma richiesta, niente commit. Utile per:
 
 - **Debug**: capire perché il `/wb` propone certi delta — guardarli prima

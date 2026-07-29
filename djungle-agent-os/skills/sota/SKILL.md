@@ -6,6 +6,11 @@ description: |
 
 # SOTA — read-only state inspection (v3.2.0)
 
+> **Sessione sulle letture (ADR-014b / B9).** Passa `session_id` a ogni chiamata
+> di lettura: senza, si legge dal tenant attivo — che può essere un altro
+> workspace. Recupero e formato del marcatore: `skills/_shared/session-threading.md`.
+> Controlla il `tenant_slug` in risposta: se non è quello della sessione, fermati.
+
 Inspect an initiative's State of the Art without any side-effects. Three modes:
 
 1. `/sota` — list all active initiatives of the tenant grouped by domain

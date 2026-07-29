@@ -6,6 +6,11 @@ description: |
 
 # /review-queue — Coda di review del writeback automatico (v4.6.0)
 
+> **Sessione sulle letture (ADR-014b / B9).** Passa `session_id` a ogni chiamata
+> di lettura: senza, si legge dal tenant attivo — che può essere un altro
+> workspace. Recupero e formato del marcatore: `skills/_shared/session-threading.md`.
+> Controlla il `tenant_slug` in risposta: se non è quello della sessione, fermati.
+
 Da v4.6.0 le sessioni si chiudono e digeriscono da sole (writeback automatico).
 Con la commit policy di default (`confidence_gated`), i fatti ad **alta**
 confidence vengono applicati subito alla SOTA; quelli a **media** confidence

@@ -64,6 +64,22 @@ doppio encoding del transcript JSONL.
 3. **Nessuna** → errore con il rimedio dentro:
    *"Nessuna sessione attiva: apri con `/invoke <agente>` e ripeti."*
 
+## Anche le LETTURE seguono la sessione (B9, server ≥ 4.12.2)
+
+I tool read-only accettano `session_id` **opzionale**: passalo SEMPRE quando
+sei dentro una sessione. Senza, la lettura viene risolta sul **tenant attivo**
+— che può essere un altro workspace, se l'utente ha altre chat aperte o ha
+switchato dal portal. Una chat su djungle con attivo spallanzani si vedrebbe
+servire la SOTA del tenant sbagliato.
+
+Vale per: `get_sota`, `get_sota_section`, `probe_initiative_context`,
+`list_initiatives`, `get_initiative`, `list_pending_handoffs`,
+`list_memory_logs`, `list_review_queue`, `list_pending_scribe`,
+`list_references`, `get_briefing`, `list_agents`, `list_domains`.
+
+Ogni risposta porta `tenant_slug`: se non coincide con quello del marcatore,
+**fermati e segnalalo all'utente** — stai leggendo il workspace sbagliato.
+
 ## Divieti
 
 - **Niente file "sessione corrente" su disco** (`~/.djungle/current-session`
