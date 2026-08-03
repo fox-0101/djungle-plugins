@@ -54,6 +54,12 @@ Chiama **`set_active_tenant({ tenant_slug: <slug>, set_by: "cowork" })`** →
 server UPSERT su `user_active_tenant` → le **prossime** chiamate MCP useranno
 quel tenant automaticamente.
 
+> **Nota (ADR-022 E3):** lo switch è GLOBALE — vale per tutte le chat
+> dell'utente, non solo questa. Per legare un PROGETTO a un tenant senza
+> toccare le altre chat, la via giusta è la riga `tenant: <slug>` nel
+> CLAUDE.md del progetto: /invoke la passa come `tenant_slug` e la sessione
+> nasce lì. Lo switch resta per il cambio di contesto voluto dall'utente.
+
 Conferma:
 ```
 ✓ Switchato su {emoji} {nome}.

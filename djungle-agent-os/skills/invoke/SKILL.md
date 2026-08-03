@@ -16,6 +16,7 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 
 - `agent_id`, `name`, `role`, `system_prompt`
 - `session_id`, `session_code` — needed by `writeback` skill (saved into the conversation context)
+- `compiled_version` (ADR-022) — targa della composizione che ha servito la sessione; non mostrarla, è per l'audit
 - `pending_handoffs[]` — handoffs directed at this agent
 - `preflight_status: 'ok'`
 - **`resolved_initiative`** — `{id, slug, name}` if the user mentioned an initiative, else null
@@ -36,7 +37,9 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 >
 > Formato letterale, regole ed estrazione: `skills/_shared/session-threading.md`
 > (fonte unica — non riparafrasare). Niente virgolette attorno ai valori, campi
-> sempre in quest'ordine. Il tenant è quello attivo mostrato in pre-flight.
+> sempre in quest'ordine. Il tenant è quello su cui è NATA la sessione: il
+> `tenant_slug` dichiarato (riga `tenant:` del CLAUDE.md) se presente,
+> altrimenti l'attivo mostrato in pre-flight.
 > Emettila ANCHE quando `dialog_required` si risolve e la sessione nasce al
 > secondo giro di `invoke_agent`. È la fonte del `session_id` per tutte le
 > skill di scrittura e per gli hook: senza marcatore, le write falliscono.
@@ -50,6 +53,12 @@ Extract the agent name from the user's message: "invoke Dean", "attiva dean", "v
 ### 2. Pre-flight step 1: read CLAUDE.md if present
 
 **Before calling `invoke_agent`**, if you have filesystem access (Cowork desktop or Claude Code), read `CLAUDE.md` from the current project root. If present, keep its content available — you'll inject it as opening context for the agent.
+
+**Tenant del progetto (ADR-022 E3):** se il CLAUDE.md contiene una riga
+`tenant: <slug>` (a inizio riga, slug `[a-z0-9-]`), passala come `tenant_slug`
+alla invoke: la sessione nasce su quel tenant, membership validata dal server,
+senza toccare il tenant attivo globale. Se la riga non c'è, NESSUN override —
+comportamento attuale.
 
 If absent, note it: at activation time, mention "non vedo CLAUDE.md, vuoi che ti aiuti a compilarlo?" so the user can decide whether to fix or proceed.
 
@@ -109,7 +118,8 @@ skill passi il transcript qui.
 invoke_agent({
   agent_name: "Dean",
   initiative_input: "Storytelling AI",
-  task_input: "<il primo messaggio dell'utente, INTEGRALE>"
+  task_input: "<il primo messaggio dell'utente, INTEGRALE>",
+  tenant_slug: "<solo se il CLAUDE.md del progetto ha la riga tenant:>"
 })
 ```
 
@@ -236,7 +246,16 @@ Skip silently on mobile/web — DB write is canonical, file mirror is best-effor
 
 ## Error handling
 
-- **Agent not found** → `list_agents` and suggest valid names.
+- **Agent not found** → `list_agents` and suggest valid names. Se l'agente
+  esiste ma su un ALTRO tenant (chat aperta nel progetto sbagliato, o attivo
+  globale che punta altrove): **NON** riparare con `list_my_tenants` →
+  `set_active_tenant` → invoke — è il difetto del 03/08, sposta il problema
+  su tutte le chat future. Rimedio giusto: aggiungi `tenant: <slug>` al
+  CLAUDE.md del progetto e ripeti la invoke (o l'utente switcha a mano con
+  `/tenant switch`, sapendo che è globale).
+- **"non sei membro del tenant"** (invoke con tenant_slug) → la riga
+  `tenant:` del CLAUDE.md punta a un tenant di cui l'utente non è membro:
+  mostra l'errore e chiedi se correggerla.
 - **401 / Bearer challenge** → OAuth session expired. Disconnect + reconnect the connector (Customize → Plugin → Connectors). No env vars in v3+.
 - **`row-level security policy`** → server bug, report to Djungle support, no retry loop.
 - **Agent status = Draft** → proceed but mention it.
@@ -251,3 +270,4 @@ Skip silently on mobile/web — DB write is canonical, file mirror is best-effor
 - ❌ Block on filesystem write failure: it's optional.
 - ❌ Passare `probe_level` da questa skill: il lean è il default giusto; il probe pieno appartiene a `/probe`.
 - ❌ Omettere la riga di trasparenza della borsa o inventarne il contenuto.
+- ❌ Usare `set_active_tenant` come rimedio automatico di una invoke fallita: il tenant esplicito è `tenant_slug` (riga `tenant:` nel CLAUDE.md); lo switch globale è un gesto manuale dell'utente.
