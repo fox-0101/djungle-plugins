@@ -4,21 +4,24 @@ description: |
   Show the unified context probe of an initiative — SOTA, recent sessions, pending handoffs, recent memory logs, references, and detected gaps. Trigger when the user says "/probe <slug>", "fammi vedere lo stato di X", "probe X", "guarda dentro X", "mi spieghi tutto di X". Read-only debugging/inspection — useful before invoking an agent on that initiative or to monitor health.
 ---
 
-# Probe — full context inspection (v3.2.0)
+# Probe — full context inspection (v4.16.0)
 
 > **Sessione sulle letture (ADR-014b / B9).** Passa `session_id` a ogni chiamata
 > di lettura: senza, si legge dal tenant attivo — che può essere un altro
 > workspace. Recupero e formato del marcatore: `skills/_shared/session-threading.md`.
 > Controlla il `tenant_slug` in risposta: se non è quello della sessione, fermati.
 
-Calls `probe_initiative_context` and renders the payload as structured markdown. Useful for:
+Calls `probe_initiative_context` and renders the payload as structured markdown. Questa skill è il **probe pieno** (ADR-020: `probe_level: "full"` — quando passi dalla invoke, è questa la forma che si ottiene chiedendo `full`; la invoke di default usa il desk lean). Useful for:
 
 - Pre-flight inspection before `invoke <agent> on <initiative>`
 - Health monitoring (check carenze_detected for warnings)
 - Cross-reference visualization (see what depends on what)
 - Debug "where are we exactly?"
 
-DB is canonical. The probe is cached server-side 5 min, invalidated automatically on writes (sessions, handoffs, memory_logs, sota_sections).
+DB is canonical. Dal v4.16.0 non c'è più cache server-side: ogni probe è fresco.
+I contenuti arrivano con le truncation E1 (`truncated: true` + `full_length`):
+per il testo integrale di una sezione usa `get_sota_section`, per una memoria
+`list_memory_logs`.
 
 ## When to trigger
 
@@ -38,7 +41,7 @@ probe_initiative_context({
   depth_references: 1,        // default
   sessions_limit: 5,           // default
   include_memory: true,        // default
-  memory_limit: 10
+  memory_limit: 10             // esplicito: il default server è 3 (ADR-020 E1)
 })
 ```
 
@@ -99,15 +102,11 @@ After rendering, optionally suggest 1-2 next moves to the user based on carenze:
 
 Don't be pushy — suggerimenti, non comandi.
 
-## Performance & caching
+## Performance
 
-- First probe of an initiative: cold, ~500ms-1s (5 parallel SELECTs).
-- Subsequent within 5 min: warm cache, <50ms.
-- Cache is invalidated automatically when:
-  - SOTA section is updated/deleted
-  - A new session/handoff/memory_log links to that initiative
-  - References to/from change
-- The user doesn't need to manually invalidate — just call probe again.
+- Probe: ~300-500ms (7 SELECT paralleli, funzione a dub1 dal v4.15).
+- Niente cache dal v4.16.0 (ADR-020 §10.2): su lambda effimere il hit rate era
+  ~0 e le invalidate instance-local mentivano. Ogni probe è fresco.
 
 ## Error handling
 

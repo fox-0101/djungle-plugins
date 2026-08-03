@@ -4,9 +4,9 @@ description: |
   Invoke an AI agent from the Djungle Agent OS. Use this skill whenever the user says "invoke [agent name]", "attiva [agent name]", "carica [agent name]", "usa [agent name]", or any variation of loading/activating/starting an agent. Also trigger when the user mentions an agent by name (like "Dean", "Lora", "Focus", "Iron", "Spacey", "Set", "Doc", "Vince", "Bookey") in the context of wanting to work with it, or asks to "start a session with [agent]", "talk to [agent]", "switch to [agent]", or "fammi parlare con [agent]". This skill connects to the Djungle Agent OS MCP server to fetch agent data and run the pre-flight protocol.
 ---
 
-# Invoke — Agent OS Loader (v3.3.0)
+# Invoke — Agent OS Loader (v4.16.0)
 
-Load an AI agent with **pre-flight protocol**, **pending handoff handling**, **initiative resolution + context probe** (v3.2.0+), and **Scribe buffer recovery** (v3.3.0+).
+Load an AI agent with **pre-flight protocol**, **pending handoff handling**, **initiative resolution + desk** (ADR-020: pagina a due modi + borsa a intento), and **Scribe buffer recovery** (v3.3.0+).
 
 ## CRITICAL — Use ONLY `invoke_agent`
 
@@ -19,7 +19,12 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 - `pending_handoffs[]` — handoffs directed at this agent
 - `preflight_status: 'ok'`
 - **`resolved_initiative`** — `{id, slug, name}` if the user mentioned an initiative, else null
-- **`probe_payload`** — full context (SOTA, recent_sessions, pending_handoffs, references, carenze_detected) when resolved_initiative is set
+- **`desk`** (v4.16.0, ADR-020) — la scrivania: `{mode, page, bag, manifest}`.
+  - `mode`: `"initiative"` (iniziativa risolta) o `"agent"` (senza — pagina d'agente: handoff pending, ultime 3 sessioni, indice KNW, iniziative recenti)
+  - `page`: lo stato essenziale (≤3k car.)
+  - `bag`: la borsa a intento composta server-side da `task_input` — riferimenti espliciti HND/MEM/KNW/ADR inline, KNW `init:<slug>`, KNW per keyword, memorie pertinenti. `bag.matched_by` elenca cosa è stato agganciato e perché
+  - `manifest`: i cassetti — cosa esiste, quanto pesa, con quale tool aprirlo. L'overflow della borsa vi appare con `probable: true`
+- **`probe_payload`** — SOLO con `probe_level: "full"` (questa skill NON lo passa: il default lean basta; il probe pieno è per `/probe`)
 - **`dialog_required`** — true if the resolver needs a user choice (ambiguous match or new-initiative classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
 - **`pending_scribe_buffers`** (v3.3.0+) — buffer Scribe ancora pending dell'utente (escluso il buffer della session appena creata). Se non vuoto, vedi Step 3.7 — recovery dialog prima di partire col task.
 
@@ -101,8 +106,17 @@ skill passi il transcript qui.
 ### 3. Call `invoke_agent` (single call)
 
 ```
-invoke_agent({ agent_name: "Dean", initiative_input: "Storytelling AI" })
+invoke_agent({
+  agent_name: "Dean",
+  initiative_input: "Storytelling AI",
+  task_input: "<il primo messaggio dell'utente, INTEGRALE>"
+})
 ```
+
+**`task_input` si passa SEMPRE** (ADR-020 §3): è il primo messaggio dell'utente,
+integrale, non riassunto — la fonte dell'intento da cui il server compone la
+borsa. **Non passare `probe_level`**: il default lean è il contratto di questa
+skill.
 
 ### 3.5. Handle the resolver dialog (if any)
 
@@ -115,13 +129,37 @@ If `result.dialog_required === true`:
 
 **Do not adopt the agent identity until the dialog is resolved.** No session is created during dialog turns.
 
-### 3.6. Probe payload injection (when resolved)
+### 3.6. Desk injection + riga di trasparenza (v4.16.0, ADR-020)
 
-If `result.probe_payload` is non-null:
+Il `result.desk` sostituisce il vecchio probe come contesto di lavoro:
 
-- It contains `initiative` (full row), `domain`, `sota[]` (canonical sections), `recent_sessions[]`, `pending_handoffs[]`, `recent_memory_logs[]`, `references[]` (related initiatives with current_state snippet), `carenze_detected[]` (4 types: missing_sota_section, stale_initiative, open_loop_old, missing_kpi).
-- Inject it into the agent's working memory as a "Initiative Context" block prepended to the conversation, after CLAUDE.md and before the user's task.
-- If `carenze_detected[]` has entries with severity `warning`, the agent SHOULD mention them in 1 line ("vedo open_loop X aperto da N giorni") before proceeding to the task. The MOD-preflight-check Notion module handles this — just pass the carenze through.
+- Inietta `desk.page` come blocco "Contesto" nella working memory dell'agente,
+  dopo CLAUDE.md e prima del task utente. In modo `initiative` contiene
+  current_state/next_action/open_loops/carenze/handoff; in modo `agent` la
+  pagina d'agente (handoff, sessioni recenti, indice KNW, iniziative recenti).
+- Inietta gli item di `desk.bag` come blocco "Materiale caricato" — sono i
+  corpi dei riferimenti citati e delle KNW/memorie agganciate all'intento.
+- Tieni `desk.manifest` a disposizione dell'agente: dice cosa ESISTE e con
+  quale tool aprirlo (`get_sota_section`, `list_memory_logs`, probe full). Se
+  contiene voci `probable: true`, sono candidati rimasti fuori per budget:
+  l'agente li carica col tool indicato se servono.
+- Se `page.carenze` ha entries `warning`, l'agente le nomina in 1 riga prima
+  del task.
+
+**Riga di trasparenza (OBBLIGATORIA, ADR-020 §6):** la prima risposta
+dell'agente dichiara la borsa in una riga:
+
+```
+Ho caricato: HND-0042, KNW-T-038, 2 memorie di agent-os-platform.
+```
+
+Con la borsa vuota: "Nessun materiale agganciato al task." La riga viene da
+`desk.bag.items` (codici) — non inventare, non omettere.
+
+**Suggerimento skill:** se `bag.matched_by` o il testo dell'utente combaciano
+con i trigger di una skill installata (es. cita un P&L → `/pnl-snapshot`,
+audit Meta → `/meta-audit`), proponila in una riga dopo la trasparenza — o
+avviala se la richiesta è inequivocabile.
 
 ### 3.7. Recovery dei buffer Scribe pending (v3.3.0+)
 
@@ -211,3 +249,5 @@ Skip silently on mobile/web — DB write is canonical, file mirror is best-effor
 - ❌ Reference `DJUNGLE_API_KEY` or env vars. v3+ uses OAuth.
 - ❌ Process pending handoffs without surfacing them to the user — always ask.
 - ❌ Block on filesystem write failure: it's optional.
+- ❌ Passare `probe_level` da questa skill: il lean è il default giusto; il probe pieno appartiene a `/probe`.
+- ❌ Omettere la riga di trasparenza della borsa o inventarne il contenuto.
