@@ -38,8 +38,15 @@ If user is unsure about type/stage, suggest based on description (e.g. "una cosa
 Flow:
 
 1. Slug derivation: lowercase + dash from name. Show to user before submit ("slug sarà `storytelling-ai`, ok?").
-2. If no domain supplied, ask which domain or default to `uncategorized` (auto-create `uncategorized` domain only on first use).
-3. Call `create_initiative({slug, name, type, domain_slug, stage?, description?})`.
+2. If no domain supplied, ask which domain or default to `uncategorized` (auto-create `uncategorized` domain only on first use — anche `create_domain` vuole `session_id` o `tenant_slug`).
+3. Call `create_initiative({slug, name, type, domain_slug, stage?, description?, session_id})`.
+
+   > **`session_id` OBBLIGATORIO — o, se non c'è sessione, `tenant_slug`**
+   > (ADR-014a A1b, server ≥ 4.19.0). Gli slug sono unici PER TENANT: creare
+   > nel tenant sbagliato **non dà errore**, duplica in silenzio da un'altra
+   > parte. È successo due volte (`acquisizione-lifeed` 28/07,
+   > `centro-formazione` 05/08) e ogni volta è costata una migrazione.
+   > Recupero del session_id: `skills/_shared/session-threading.md`.
 4. Side-effect: server seeds 6 empty canonical SOTA sections automatically.
 5. Confirm: `Iniziativa 'storytelling-ai' creata. 6 sezioni SOTA seedate vuote. Apri /sota storytelling-ai per popolarle.`
 
@@ -94,7 +101,7 @@ Call `archive_initiative({slug, reason})`. Default reason: `manual`. Confirm to 
 /initiative link investor-update-may-2026 bp-djungle-holding-2026 --relation=depends_on
 ```
 
-Call `link_initiatives({source_slug, target_slug, relation_type, notes?})`. Idempotent — if already linked, returns the existing reference id with `created: false`.
+Call `link_initiatives({source_slug, target_slug, relation_type, notes?, session_id})`. `session_id` obbligatorio (o `tenant_slug` se non c'è sessione) — stessa regola di `create_initiative`, vedi sopra. Idempotent — if already linked, returns the existing reference id with `created: false`.
 
 For `unlink`, suggest: `/initiative unlink <source> <target> --relation=<type>`.
 

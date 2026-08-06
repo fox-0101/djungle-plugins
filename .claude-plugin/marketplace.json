@@ -10,7 +10,7 @@
       "name": "djungle-agent-os",
       "source": "./djungle-agent-os",
       "description": "Connect Claude to the Djungle Agent OS. v4.6.0: writeback automatico — sessioni chiuse e digerite da sole, fact HIGH auto in SOTA, MEDIUM in /review-queue. v4.5.0: Scribe autonomo. v4.4.x: user-aware auth, switch tenant. v4.3.x: multi-tenant + brand emoji. v4.2.x: Librarian. v4.1.x: custom agents, marketplace, /sota-board. Self-service portal su agents.djungle.io.",
-      "version": "4.18.0",
+      "version": "4.19.0",
       "icon": "./djungle-agent-os/icon.png",
       "author": {
         "name": "Djungle"

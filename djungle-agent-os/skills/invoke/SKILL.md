@@ -134,7 +134,7 @@ If `result.dialog_required === true`:
 
 - `dialog_payload.kind === 'ambiguous'` → show the candidates from `dialog_payload.options[]` (slug, name, reason). Ask user to pick. Re-call `invoke_agent({agent_name, initiative_input: <chosen-slug>})`.
 - `dialog_payload.kind === 'confirm'` → ask "È <name> (<slug>)?" Yes → re-call with that slug. No → ask user what they meant.
-- `dialog_payload.kind === 'not_found_with_classifier'` → the classifier suggested it might be a new initiative. Show its message + classifier reasoning. If user says "yes, create it", call `create_initiative({slug, name, type, domain_slug})` first, then re-call invoke_agent with the new slug.
+- `dialog_payload.kind === 'not_found_with_classifier'` → the classifier suggested it might be a new initiative. Show its message + classifier reasoning. If user says "yes, create it", call `create_initiative({slug, name, type, domain_slug, tenant_slug})` first, then re-call invoke_agent with the new slug. **`tenant_slug` qui è obbligatorio** (ADR-014a A1b): in questo punto del dialog la sessione NON esiste ancora (`dialog_required` ritorna `session_id` vuoto per contratto), quindi il tenant va dichiarato — è quello della riga `tenant:` del CLAUDE.md se c'è, altrimenti quello mostrato in pre-flight. Senza, il server rifiuta: creare nel tenant sbagliato non collide, duplica in silenzio.
 - `dialog_payload.kind === 'not_found_no_match'` → no match and no classifier insight. Ask user if they want to skip (re-call `invoke_agent` without `initiative_input`) or create a new initiative manually.
 
 **Do not adopt the agent identity until the dialog is resolved.** No session is created during dialog turns.
