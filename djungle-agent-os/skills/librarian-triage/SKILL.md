@@ -1,10 +1,10 @@
 ---
 name: librarian-triage
 description: |
-  Triage conversazionale degli alert del Librarian: un alert alla volta, verdetto in linguaggio naturale (anche dettato), preview del delta, conferma, avanti. Batch massimo 5, cursore persistito, ripresa da dove si era. Trigger SOLO con "/librarian-triage" o frasi qualificate: "triage del librarian", "cosa ha trovato il librarian", "discrepanze di oggi", "giro del mattino". REGOLA DI INSTRADAMENTO (ADR-008c §3.2): "triage" nudo e le frasi sul lavoro di sviluppo ("triagea il backlog", "smaltiamo l'inbox") appartengono a /triage, che esiste da prima; se la richiesta è ambigua ("facciamo triage" senza contesto) chiedi, una riga, una volta: "Coda di sviluppo o discrepanze del Librarian?" — mai procedere su un'assunzione. v4.24.0+.
+  Triage conversazionale della coda della verità: alert del Librarian E fatti in review dello Scribe, un item alla volta, verdetto in linguaggio naturale (anche dettato), preview del delta, conferma, avanti. Batch massimo 5, cursore persistito, ripresa da dove si era. Trigger SOLO con "/librarian-triage" o frasi qualificate: "triage del librarian", "cosa ha trovato il librarian", "discrepanze di oggi", "giro del mattino". REGOLA DI INSTRADAMENTO (ADR-008c §3.2): "triage" nudo e le frasi sul lavoro di sviluppo ("triagea il backlog", "smaltiamo l'inbox") appartengono a /triage, che esiste da prima; se la richiesta è ambigua ("facciamo triage" senza contesto) chiedi, una riga, una volta: "Coda di sviluppo o discrepanze del Librarian?" — mai procedere su un'assunzione. v4.25.0+.
 ---
 
-# /librarian-triage — Truth-Setting Interface (v4.24.0, ADR-008c)
+# /librarian-triage — Truth-Setting Interface (v4.25.0, ADR-008c)
 
 > **Sessione (ADR-014b / B9).** Passa `session_id` a ogni chiamata. Recupero e
 > formato del marcatore: `skills/_shared/session-threading.md`.
@@ -29,22 +29,26 @@ si applica solo dopo il sì, si passa alla successiva.
 
 ```
 1. get_triage_queue({ session_id, batch_size: 5 })
-   → { triage_session_id, resumed, pending_total, alerts[] }
-2. Presenta l'alert 1 di N (vedi formato). UNO SOLO.
+   → { triage_session_id, resumed, pending_alerts, pending_review, items[] }
+   Ogni item ha kind: "alert" oppure "review_fact" (§6.3: una sola coda).
+2. Presenta l'item 1 di N (vedi formato). UNO SOLO.
 3. L'utente risponde in linguaggio naturale.
-4. interpret_verdict({ alert_id, verdict_text })
+4. interpret_verdict({ alert_id: item.id, verdict_text, item_kind: item.kind })
    → { intent, confidence, params, preview } oppure needs_disambiguation
 5. Mostra la preview e chiedi conferma.
-6. Al sì: apply_triage_action({ alert_id, intent, params, verdict_text,
-   via: "conversational", triage_session_id, session_id })
-7. Alert successivo. A fine batch: riepilogo di cosa è stato applicato.
+6. Al sì: apply_triage_action({ alert_id: item.id, item_kind: item.kind,
+   intent, params, verdict_text, via: "conversational",
+   triage_session_id, session_id })
+7. Item successivo. A fine batch: riepilogo di cosa è stato applicato.
 ```
 
 Se `resumed: true`, dillo: *"Riprendo da dove eravamo: fatto X di N."* Il
 cursore vive sul server (`get_triage_progress({ triage_session_id })`), non in
 questa chat: la skill interrotta al terzo di cinque riparte dal terzo.
 
-### Formato di presentazione (un alert per messaggio)
+### Formato di presentazione (un item per messaggio)
+
+Alert (`kind: "alert"`):
 
 ```
 ⚠️ 2 di 5 — warning · drift_loop_old · tour-in-vespa
@@ -53,6 +57,17 @@ Il Librarian suggerisce: ruotare le credenziali e registrare la data.
 Vista 3 volte dal 10/08.
 
 Che si fa? (è vero / falso / correggi con… / passa a <agente> / dopo / archivia l'iniziativa)
+```
+
+Fatto in review (`kind: "review_fact"` — vocabolario RIDOTTO, arriva in
+`allowed_intents`):
+
+```
+📋 4 di 5 — fatto in review · decision · high · djungle-bridge
+"Il fondo chiude il primo closing a 30M entro Q4"
+Estratto da una sessione e rimasto in coda per mancanza di scope.
+
+Lo applico alla SOTA? (sì, applica / no, scarta / dopo)
 ```
 
 ### I sei verdetti (vocabolario chiuso, §2.1)
@@ -71,6 +86,10 @@ Che si fa? (è vero / falso / correggi con… / passa a <agente> / dopo / archiv
 la SOTA con `get_sota_section` e falla vedere nella preview). `open_handoff`
 vuole `from_agent` e `to_agents` (risolvi il nome fatto dall'utente con
 `list_agents`). Entrambi vogliono `session_id` dentro `params`.
+
+Sui **fatti in review** valgono SOLO tre verdetti (§6.3, T13): accettare
+(`confirm_acknowledge` → il fatto va nella SOTA), scartare (`dismiss`),
+rimandare (`defer`). Le altre azioni sono rifiutate dal server: non provarle.
 
 ### needs_disambiguation
 
