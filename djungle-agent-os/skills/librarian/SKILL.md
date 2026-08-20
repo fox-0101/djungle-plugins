@@ -8,7 +8,7 @@ description: |
 
 Il Librarian è un Anthropic Managed Agent che ogni settimana (+ on-demand) esegue un consolidation cycle a 5 fasi (orient → prune → merge → reorganize → surface) sulla knowledge base del tenant: SOTA, memory logs, sessioni, handoff. Produce un briefing leggibile + alert prioritari su drift, contraddizioni, duplicazioni.
 
-Skill correlate: **/librarian-now** (avvia un run) · **/briefing** (ultimo briefing).
+Skill correlate: **/librarian-now** (avvia un run) · **/briefing** (ultimo briefing) · **/librarian-triage** (smaltisce gli alert a verdetto, un alert alla volta — è la strada per consumare la coda, non `acknowledge_alert` a mano).
 
 ## Comportamento
 

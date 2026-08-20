@@ -1,7 +1,7 @@
 ---
 name: triage
 description: |
-  Processa gli item in inbox della coda di sviluppo: per ognuno propone tipo, priorità, impatto ed effort, e per quelli che meritano sviluppo produce il messaggio pronto per l'implementatore (bozza di ADR se strutturale, prompt diretto se piccolo). Trigger quando l'utente dice "/triage", "triagea il backlog", "smaltiamo l'inbox", "cosa c'è da decidere in coda", "priorizza gli item". Skill di Doc (AGT-8). v4.21.0+.
+  Processa gli item in inbox della coda di sviluppo: per ognuno propone tipo, priorità, impatto ed effort, e per quelli che meritano sviluppo produce il messaggio pronto per l'implementatore (bozza di ADR se strutturale, prompt diretto se piccolo). Trigger quando l'utente dice "/triage", "triagea il backlog", "smaltiamo l'inbox", "cosa c'è da decidere in coda", "priorizza gli item". REGOLA DI INSTRADAMENTO (ADR-008c §3.2): "triage" nudo e le frasi sul lavoro di sviluppo appartengono a QUESTA skill, che esiste da prima; gli alert del Librarian si triagiano con /librarian-triage o frasi qualificate ("triage del librarian", "discrepanze di oggi", "giro del mattino"); se la richiesta è ambigua ("facciamo triage" senza contesto) chiedi, una riga, una volta: "Coda di sviluppo o discrepanze del Librarian?" — mai procedere su un'assunzione. Skill di Doc (AGT-8). v4.21.0+.
 ---
 
 # /triage — dalla coda al lavoro (v4.21.0, ADR-024 §2.4)
