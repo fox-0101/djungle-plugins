@@ -26,7 +26,7 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
   - `bag`: la borsa a intento composta server-side da `task_input` — riferimenti espliciti HND/MEM/KNW/ADR inline, KNW `init:<slug>`, KNW per keyword, memorie pertinenti. `bag.matched_by` elenca cosa è stato agganciato e perché
   - `manifest`: i cassetti — cosa esiste, quanto pesa, con quale tool aprirlo. L'overflow della borsa vi appare con `probable: true`
 - **`probe_payload`** — SOLO con `probe_level: "full"` (questa skill NON lo passa: il default lean basta; il probe pieno è per `/probe`)
-- **`dialog_required`** — true if the resolver needs a user choice (ambiguous match or new-initiative classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
+- **`dialog_required`** — true if a user choice is needed: quale workspace (`kind: 'tenant'`, ADR-029) oppure quale iniziativa (ambiguous match o classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
 - **`pending_scribe_buffers`** (v3.3.0+) — buffer Scribe ancora pending dell'utente (escluso il buffer della session appena creata). Se non vuoto, vedi Step 3.7 — recovery dialog prima di partire col task.
 
 
@@ -128,9 +128,26 @@ integrale, non riassunto — la fonte dell'intento da cui il server compone la
 borsa. **Non passare `probe_level`**: il default lean è il contratto di questa
 skill.
 
-### 3.5. Handle the resolver dialog (if any)
+### 3.5. Handle the dialog (if any)
 
 If `result.dialog_required === true`:
+
+**`dialog_payload.kind === 'tenant'` (ADR-029) — viene PRIMA di ogni altro.**
+Il server non sa su quale workspace aprire la sessione e non lo indovina:
+`session_id` è vuoto e non è stato creato niente. Presenta la domanda di
+`dialog_payload.question` e le opzioni di `dialog_payload.tenants[]` (slug,
+name, brand_emoji — il primo è il default). Poi richiama
+`invoke_agent({agent_name, tenant_slug: <slug scelto>})`.
+
+Compare solo a chi ha più di un workspace. Se c'è la riga `tenant:` nel
+CLAUDE.md del progetto, **passala fin dalla prima chiamata** e la domanda non
+arriva nemmeno: è il modo giusto di lavorare in un repo che sa dove sta.
+
+Non proporre tu un workspace «probabile» e non scegliere il default per
+conto dell'utente. Il tenant attivo è condiviso fra le sue chat e cambia
+sotto i piedi: è esattamente il motivo per cui il server ha smesso di
+deciderlo da solo, e tre settimane di lavoro sono finite nel posto sbagliato
+senza che nessuno se ne accorgesse.
 
 - `dialog_payload.kind === 'ambiguous'` → show the candidates from `dialog_payload.options[]` (slug, name, reason). Ask user to pick. Re-call `invoke_agent({agent_name, initiative_input: <chosen-slug>})`.
 - `dialog_payload.kind === 'confirm'` → ask "È <name> (<slug>)?" Yes → re-call with that slug. No → ask user what they meant.
