@@ -126,6 +126,29 @@ dieci cose in corso. Chiudi proponendo l'handoff, non un calendario:
 /handoff focus — 4 item triageati da collocare (1 P1, 3 P2)
 ```
 
+## Chiudere un item
+
+`close_backlog_item` con `resolution: "done"` vuole **`surfaces_invalidated`**:
+quali descrizioni del sistema quella chiusura ha reso false.
+
+Valori: `guida` · `knowledge_virgo` · `portal` · `claude_md` ·
+`plugin_description` · `skill_docs` · `adr` · `sota` · `pagine_dati` ·
+`cloni_locali` — oppure **`["nessuna"]`**.
+
+**`["nessuna"]` è la risposta giusta per la maggior parte degli item**, non
+apre niente e non costa niente: proponila tu quando la chiusura non ha toccato
+nessuna descrizione, invece di far scorrere all'utente un elenco di dieci voci.
+Se chiudere costa, la gente smette di chiudere.
+
+Quando invece qualcosa è cambiato — la guida racconta un flusso diverso, il
+`CLAUDE.md` dichiara un'altra versione, una skill non fa più quello che il suo
+SKILL.md dice — dichiaralo: le superfici con un progetto competente generano un
+item di follow-up da sole, le altre restano registrate e si leggono con
+`list_surface_debt`.
+
+`resolution: "wontfix"` non chiede niente: non ha cambiato il sistema, quindi
+non può averne reso falsa la descrizione.
+
 ## Cosa NON fare
 
 - ❌ **Non scrivere niente prima della conferma dell'utente**, nemmeno se la
@@ -135,3 +158,5 @@ dieci cose in corso. Chiudi proponendo l'handoff, non un calendario:
 - ❌ **Non mettere una data**: la priorità è tua, il calendario è di Focus.
 - ❌ **Non chiudere gli item da cliente** senza la risposta al cliente: il
   server rifiuta, ed è voluto.
+- ❌ **Non chiudere senza dichiarare le superfici** (ADR-027): vedi sotto. Il
+  server rifiuta anche questo.

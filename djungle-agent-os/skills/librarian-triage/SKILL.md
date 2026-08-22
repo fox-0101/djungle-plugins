@@ -59,6 +59,25 @@ Vista 3 volte dal 10/08.
 Che si fa? (è vero / falso / correggi con… / passa a <agente> / dopo / archivia l'iniziativa)
 ```
 
+**Se l'item porta `siblings`, aggiungili PRIMA della domanda**, una riga per
+fratello e non di più:
+
+```
+⚠️ 2 di 5 — warning · drift_stale · agent-os-platform
+Il digest continua a produrre in inglese su sessioni italiane
+Vista 4 volte dal 12/08.
+
+Stesso soggetto, altre 2 aperte: contradiction_sota (critical) · insight_pattern (info)
+
+Che si fa? (è vero / falso / correggi con… / passa a <agente> / dopo / archivia l'iniziativa)
+```
+
+I fratelli sono gli alert aperti **sullo stesso soggetto in famiglie diverse**
+(ADR-008c rev. 5 §5.1). Non sono doppioni e non si agganciano: pongono domande
+diverse e vogliono verdetti diversi. Servono perché tu risponda sapendo cosa
+c'è intorno, e perché — se il verdetto vale anche per loro — tu possa dirlo e
+smaltirli di seguito invece che a giorni di distanza.
+
 Fatto in review (`kind: "review_fact"` — vocabolario RIDOTTO, arriva in
 `allowed_intents`):
 
@@ -102,6 +121,9 @@ più, è un guardrail e non un limite tecnico.
 
 ## Regole non negoziabili
 
+- ❌ **I fratelli sono contesto, non item.** Si nominano in una riga sotto
+  l'alert corrente, mai presentati come una seconda lista da smaltire, e non
+  contano nel batch di 5.
 - ❌ **Mai una lista o tabella riepilogativa degli alert.** La lista è
   precisamente ciò che oggi non viene consumato. Un alert per messaggio.
 - ❌ **Mai scrivere senza preview confermata.** `interpret_verdict` non scrive;
