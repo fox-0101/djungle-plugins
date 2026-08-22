@@ -1,6 +1,6 @@
 {
   "name": "djungle-agent-os",
-  "version": "4.27.0",
+  "version": "4.28.0",
   "description": "Connect Claude to the Djungle Agent OS: memoria di lavoro multi-tenant per iniziative, agenti e progetti, con writeback automatico delle sessioni. Cosa fa: /invoke apre una sessione su un agente del tenant col suo desk di contesto; la sessione viene digerita in automatico dagli hook (Scribe) e i fatti finiscono nella SOTA dell'iniziativa o in coda di review; /sota, /probe e /briefing leggono lo stato; /handoff passa il lavoro fra agenti. Coda di sviluppo: /backlog accoda con testo libero da qualunque chat (tipo, priorità ed effort sono del triage, non di chi segnala), /triage smaltisce l'inbox e produce bozza di ADR o prompt diretto, /dev-status legge lo stato dei progetti. Librarian: agente di background che analizza la coerenza della knowledge base e produce briefing e alert; /librarian-triage porta a verdetto, uno alla volta, gli alert E i fatti in coda di review — vocabolario chiuso di sei azioni, preview prima di ogni scrittura, batch massimo 5 ('triage' nudo resta la coda di sviluppo; per gli alert servono frasi qualificate). Ogni chiamata è ancorata alla sessione (session_id) e al tenant: niente letture o scritture sul tenant sbagliato. Richiede un account su agents.djungle.io.",
   "icon": "./icon.png",
   "author": {
