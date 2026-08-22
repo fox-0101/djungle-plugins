@@ -80,13 +80,43 @@ Vale per: `get_sota`, `get_sota_section`, `probe_initiative_context`,
 Ogni risposta porta `tenant_slug`: se non coincide con quello del marcatore,
 **fermati e segnalalo all'utente** — stai leggendo il workspace sbagliato.
 
+## La domanda sul workspace (ADR-029 D4b, server ≥ 4.32)
+
+Da v4.32 una chiamata **senza `session_id` e senza `tenant_slug`**, fatta da
+chi ha più di un workspace, non riceve dati: riceve
+
+```json
+{ "dialog_required": true,
+  "dialog_payload": { "kind": "tenant", "question": "...", "tenants": [ ... ] } }
+```
+
+È la stessa forma del dialogo dell'iniziativa ambigua, ed è il rimedio a un
+guasto che non faceva rumore: il tenant attivo è condiviso fra le chat, e una
+lettura sul workspace sbagliato **non fallisce, risponde**.
+
+Regola, valida per ogni skill:
+
+1. **Non ritentare la stessa chiamata.** Non è un errore transitorio.
+2. Se in questa chat c'è il marcatore `agentos-session`, la risposta è già
+   lì: richiama il tool con quel `session_id`. È il caso normale, e in quel
+   caso la domanda non doveva nemmeno arrivare — se arriva, il `session_id`
+   non era stato passato: passalo, e correggi il gesto.
+3. Se una sessione non c'è, **presenta le scelte all'utente** (`tenants`, il
+   default per primo) e richiama con `tenant_slug`. Non scegliere tu.
+4. Su `invoke_agent` e `create_session` la domanda è «dove **apro** la
+   sessione»: lì `session_id` non esiste ancora, la risposta è `tenant_slug`.
+
+Non applicabile a `list_my_tenants`, `get_active_tenant`, `set_active_tenant`
+e `list_open_sessions`: sono i quattro tool con cui ci si orienta e rispondono
+sempre.
+
 ## Divieti
 
 - **Niente file "sessione corrente" su disco** (`~/.djungle/current-session`
   o simili): è l'architettura di `active_tenant` — globale mutabile per
   macchina, contesa fra chat concorrenti. Riprodurrebbe il difetto che
-  ADR-014/014a hanno chiuso. Lo stato di sessione non vive in un posto
-  condiviso fra sessioni.
+  ADR-014/014a hanno chiuso e che ADR-029 ha finito di chiudere. Lo stato di
+  sessione non vive in un posto condiviso fra sessioni.
 - **Niente sessione implicita** per far passare una scrittura: si fallisce
   col messaggio del punto 3. Nessun tipo "scratch".
 - **Niente estrazione da prosa variabile**: solo il marcatore.
