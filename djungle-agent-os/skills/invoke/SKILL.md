@@ -100,11 +100,15 @@ close_and_digest({
 
 - Costruisci `transcript` dai turni della sessione precedente in questa chat.
 - Il server digerisce + applica la commit policy del tenant:
-  HIGH → SOTA in automatico, MEDIUM → review_queue (li vedi con `/review-queue`),
-  LOW → scartato. Non blocca: non serve conferma utente per i HIGH.
-- Risposta: `{ facts_extracted, auto_committed, queued_for_review, commit_policy }`.
+  HIGH in-scope → SOTA in automatico, MEDIUM e fuori scope → review_queue (li
+  vedi con `/review-queue`), LOW → scartato. Se la sessione non aveva
+  un'iniziativa, i HIGH vanno **anche** nella memoria dell'agente (una riga per
+  digest) — la tabella completa è in `/writeback`, «Dove finiscono i fatti».
+  Non blocca: non serve conferma utente per i HIGH.
+- Risposta: `{ facts_extracted, auto_committed, queued_for_review, memorized_to_agent?, commit_policy, unscoped_session? }`.
   Mostra una riga sintetica: "💾 Sessione con <Agente precedente> salvata —
-  N fatti, M auto-applicati, K in coda review".
+  N fatti, M auto-applicati, K in coda review" — più ", J in memoria" se
+  `memorized_to_agent` c'è.
 - **Idempotente**: se la sessione era già stata chiusa (es. con `/wb`), è un no-op.
 
 Se è la prima invoke della chat (nessuna sessione precedente), salta questo step.

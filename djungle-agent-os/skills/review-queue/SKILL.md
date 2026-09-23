@@ -60,8 +60,12 @@ Per "accetta tutti" → cicla `resolve_review_item(accept)` su ogni `item_id` pe
 ## Cosa NON fa
 
 - ❌ Non chiude sessioni — quello è `/wb` o automatico (Trigger B / idle).
-- ❌ Non tocca i fatti HIGH — quelli sono già in SOTA (auto-commit). Se uno è
-  sbagliato, si corregge via `/sota-update` o si reverte dall'audit log.
+- ❌ Non tocca i fatti HIGH **in-scope** — quelli sono già in SOTA (auto-commit).
+  Se uno è sbagliato, si corregge via `/sota-update` o si reverte dall'audit log.
+  In coda ci sono però anche fatti HIGH: quelli fuori dallo scope della sessione
+  e quelli di sessioni **senza iniziativa** (al 22/09, 84 di Focus). Per questi
+  ultimi, da v4.43.0, una copia è già nella memoria dell'agente: accettarli li
+  porta nella SOTA dell'iniziativa, rifiutarli non cancella la memoria.
 - ❌ Non esiste se la commit policy del tenant è `auto_all` (tutto auto-commit,
   niente coda) o se non ci sono fatti medium pendenti.
 
