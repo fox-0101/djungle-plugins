@@ -20,11 +20,13 @@ Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
 > automatico e **hook-driven** (ADR-008b rev.2): un hook `Stop` del plugin
 > scatta dopo ogni risposta dell'agente e chiama `digest_turn` col delta del
 > transcript → il server estrae i fact e applica la commit policy del tenant
-> (HIGH → SOTA, MEDIUM → coda `/review-queue`, LOW scartato). Deterministico,
-> per-turno, in ogni chat, senza che l'utente faccia nulla. `/wb` resta per chi
-> vuole chiudere e rivedere **subito** con controllo pieno — è il path
-> interattivo qui descritto. La gran parte delle sessioni non ha più bisogno di
-> un `/wb` esplicito.
+> (vedi «Dove finiscono i fatti» sotto). `/wb` resta per chi vuole chiudere e
+> rivedere **subito** con controllo pieno — è il path interattivo qui descritto.
+>
+> **Stato misurato al 22/09/2026: l'hook non arriva al server.** `last_digest_at` è vuoto
+> su tutte le sessioni dal 26/08 tranne una (BKL-0039). Finché non è corretto,
+> una sessione chiusa senza `/wb` (nuova invoke, inattività) **non salva niente**:
+> il `/wb` non è un override, è l'unico writeback che funziona.
 >
 > Richiede: Personal API Key configurata nel plugin (userConfig `api_key`).
 > Fuori da Cowork (web/desktop) gli hook non scattano → resta il `/wb` manuale.
@@ -36,6 +38,31 @@ Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
 > passando il transcript completo della conversazione → il server estrae i
 > fact con Haiku 4.5 → popola il buffer → poi `scribe_review` lo legge. La
 > cattura è garantita, non più sperata.
+
+## Dove finiscono i fatti (commit policy `confidence_gated`, server v4.43.0+)
+
+Vale per `close_and_digest` e `digest_turn`, cioè per il writeback che applica
+la policy del tenant senza review interattiva:
+
+| Fatto | Sessione con iniziativa | Sessione senza iniziativa |
+|---|---|---|
+| HIGH sulla stessa iniziativa della sessione | SOTA, in automatico | — |
+| HIGH su un'iniziativa esistente | review (fuori scope) | **memoria dell'agente + review** |
+| HIGH senza iniziativa | review | **memoria dell'agente** |
+| HIGH su slug inesistente o ambiguo | review | review |
+| MEDIUM | review | review |
+| LOW | scartato | scartato |
+
+La memoria dell'agente è **una** riga `memory_logs` per digest (tipo
+`observation`, tag `digest`), con le iniziative nominate in
+`touched_initiatives`: compare nella pagina dell'agente al prossimo invoke e in
+quella delle iniziative citate. È ciò che dà continuità agli agenti trasversali
+(Focus, Bookey), che non hanno un'iniziativa. La risposta la conta in
+`memorized_to_agent`: riportalo all'utente accanto ad `auto_committed` e
+`queued_for_review`.
+
+`always_confirm` manda tutto nel buffer pending; `auto_all` salta il gate di
+confidence ma non quello di scope.
 
 ## Cosa cattura il writeback
 
