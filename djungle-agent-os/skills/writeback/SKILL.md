@@ -102,16 +102,36 @@ Dal payload `invoke_agent` salvato all'apertura della session:
 
 Il `session_id` si recupera dal **marcatore `agentos-session`** nel transcript (l'ultimo vince) — formato e recupero in `skills/_shared/session-threading.md`. Se il marcatore manca: `list_open_sessions` (proponi all'utente, aspetta conferma); se non ci sono sessioni aperte: fermati con "nessuna sessione attiva: apri con `/invoke <agente>` e ripeti". NIENTE percorsi degradati: dal server ≥4.12.1 ogni write senza `session_id` viene rifiutata (ADR-014a).
 
+### Step 1.5 — Il link di questa chat (server ≥ 4.46.0, BKL-0088)
+
+Il tasto **Riprendi** della home del portal apre la chat in cui la sessione è
+vissuta, se la sessione ha salvato il proprio link. Nessuna chat può trovare
+il link delle altre: lo scrive la sessione stessa, qui.
+
+- **Claude Code desktop:** leggilo da solo. `get_session` con `"self"` (tool
+  della sessione desktop) restituisce `link`, nella forma
+  `claude://claude.ai/epitaxy/<id>`. Non chiedere niente.
+- **claude.ai (web, app, iPhone) e Cowork:** nessuno strumento espone il link.
+  Chiedi una riga sola, insieme al resto del /wb: *«Se vuoi riprenderla dal
+  portal, incollami il link di questa chat (barra degli indirizzi, o Condividi
+  → Copia link). Altrimenti vado avanti.»* Un no, o nessuna risposta, va bene:
+  il portal ripiega sul comando da copiare.
+
+Solo link a Claude (`https://claude.ai/…` o `claude://claude.ai/…`). Un link
+non valido il server lo scarta senza bloccare la chiusura, e lo dice in
+`chat_url: "scartato"`.
+
 ### Step 2 — Close session
 
 ```
 close_session({
   session_id: "<uuid>",
+  chat_url: "<link dallo Step 1.5, se c'è — altrimenti ometti il campo>",
   summary: "## Sommario Sessione\n[summary]\n\n## Learnings & Insight\n- ...\n\n## Decisioni Prese\n- ...\n\n## Performance\n**Rating:** Good\n[explanation]\n\n## Feedback Ricevuto\n- ...\n\n## Segnali di Evoluzione\n- ...\n\n## Stato Progetto\n- ..."
 })
 ```
 
-Response: `{ok, session_id, ended_at, already_closed}`. Se `already_closed: true` (retry post-errore), salta scrittura memory_log se già fatti — ma procedi con Step 3-6 (lo Scribe buffer è separato).
+Response: `{ok, session_id, ended_at, already_closed, chat_url}` — `chat_url` vale `salvato`, `scartato` o `assente`. Se `already_closed: true` (retry post-errore), salta scrittura memory_log se già fatti — ma procedi con Step 3-6 (lo Scribe buffer è separato).
 
 ### Step 3 — Cross-post memory logs (con initiative_id v3.2.1+)
 
