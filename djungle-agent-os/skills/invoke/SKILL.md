@@ -78,6 +78,35 @@ If found, pass it as `initiative_input` (free text, NOT a slug — the server re
 
 If no clear initiative is mentioned, omit `initiative_input` and the agent runs without initiative context. That's fine — the user can switch later with `/sota <slug>` or by referencing it in the next prompt.
 
+### 2.55. Riprendere una sessione (server ≥ 4.47.0, ADR-033)
+
+Il tasto **Riprendi** del portal copia un comando come
+`invoca Doc su djungle, riprendi SES-INV-1790237999541`. Se il messaggio
+contiene **«riprendi SES-…»**:
+
+- passa il codice in `resume_from` (così com'è, maiuscolo);
+- passa il tenant del comando («su <slug>») in `tenant_slug`: la sessione si
+  cerca solo lì;
+- **non** passare `initiative_input`, salvo che l'utente ne nomini una: il
+  server eredita l'iniziativa della sessione vecchia;
+- `task_input` resta il messaggio intero, come sempre.
+
+Il server apre una sessione **nuova**: quella vecchia non si riapre. La sintesi
+di ciò che ha lasciato arriva come prima voce della borsa (`kind: "session"`),
+e va letta come le altre (3.6). Nella risposta c'è `resumed_from`:
+
+- `has_summary: false` → dillo in una riga: «La sessione SES-… era stata
+  chiusa senza /wb: riparto da handoff, memorie e fatti, non dalla
+  conversazione.» Non fingere di ricordare.
+- `chat_url` presente → offri il link alla chat originale, in una riga.
+
+Errori (il server non crea niente): sessione non trovata in quel tenant,
+sessione di un altro membro, oppure di un altro agente. In quest'ultimo caso il
+messaggio dice di chi è: proponi di invocare quell'agente, non riprovare a caso.
+
+«handoff HND-…» (il comando del lavoro arrivato da solo e della delega) non
+ha bisogno di niente: il codice nel `task_input` porta già l'handoff in borsa.
+
 ### 2.6. Auto-writeback della sessione precedente (v4.6.0, Trigger B)
 
 > **Nota v4.6.0 rev.2:** la cattura primaria è ora l'hook `Stop` del plugin,
@@ -123,7 +152,8 @@ invoke_agent({
   agent_name: "Dean",
   initiative_input: "Storytelling AI",
   task_input: "<il primo messaggio dell'utente, INTEGRALE>",
-  tenant_slug: "<solo se il CLAUDE.md del progetto ha la riga tenant:>"
+  tenant_slug: "<solo se il CLAUDE.md del progetto ha la riga tenant:>",
+  resume_from: "<solo con «riprendi SES-…», vedi 2.55>"
 })
 ```
 
