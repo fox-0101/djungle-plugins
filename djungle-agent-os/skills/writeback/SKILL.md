@@ -255,6 +255,41 @@ Se `groups[i].resolved === false` (slug non match nel registry):
 - non rifiutarlo silenziosamente
 - propone all'utente: "Ho rilevato fact su `<slug>` ma non corrisponde a iniziativa esistente. Crea ora come bozza, salta, o salva con altro slug?"
 
+### Step 5.5 — Skill candidata (plugin 4.34.0, BKL-0076)
+
+Guarda la sessione: l'agente ha eseguito un **workflow multi-passo che
+l'utente ha già fatto fare prima, o che dice di voler rifare** (stessa
+sequenza di strumenti e passaggi, input diversi)? Se no, salta lo step in
+silenzio. Se sì, **una riga, una volta**:
+
+```
+Questa procedura (<nome in 3-5 parole>) sembra ripetibile: la metto in backlog come skill candidata? Y / n
+```
+
+Con `n` o silenzio non fai niente. Con `Y`:
+
+1. Scrivi la bozza del SKILL.md nello standard del plugin: frontmatter
+   `name` (slug) e `description` (trigger), poi i passi, i tool nell'ordine
+   in cui li hai usati e cosa NON fare. Niente segreti, API key, email o dati
+   del cliente: sostituiscili con segnaposto.
+2. Accoda:
+   ```
+   create_backlog_item({
+     session_id: "<uuid>",
+     project_slug: "agent-os-v2",
+     type: "feature",
+     source: "agente",
+     source_detail: "<slug-agente> · <SES-code>",
+     title: "Skill candidata: <name>",
+     body: "PERCHÉ È RIPETIBILE\n<una riga>\n\nEVIDENZA\n- sessione <SES-code>\n- \"<citazione letterale dell'utente>\"\n- passi: <tool/azioni in ordine>\n\nBOZZA SKILL.md\n<bozza integrale>"
+   })
+   ```
+3. Conferma in una riga: `→ BKL-NNNN, skill candidata in inbox`.
+
+Al massimo **una** proposta per sessione. La skill **non** si installa da
+qui: diventa attiva solo se il triage la accetta e un umano fa il merge della
+PR sul plugin. Se vale anche nel resto del flusso, lo dirà ADR-035.
+
 ### Step 6 — Confirm to user
 
 ```
