@@ -107,6 +107,15 @@ messaggio dice di chi è: proponi di invocare quell'agente, non riprovare a caso
 «handoff HND-…» (il comando del lavoro arrivato da solo e della delega) non
 ha bisogno di niente: il codice nel `task_input` porta già l'handoff in borsa.
 
+### 2.56. Sessioni aperte da un task programmato (server ≥ 4.50.0, BKL-0097)
+
+Se stai girando dentro un **task programmato** (il prompt del task lo dice:
+«run automatico», «giro serale», «esecuzione scheduled», o chiede
+esplicitamente `source scheduled`), passa `source: "scheduled"` a
+`invoke_agent`. La home del portal mostra i lavori di Alessandro e ne esclude
+le sessioni automatiche: senza questo campo un giro serale conta come lavoro
+suo. In una chat normale non passare `source`.
+
 ### 2.6. Auto-writeback della sessione precedente (v4.6.0, Trigger B)
 
 > **Nota v4.6.0 rev.2:** la cattura primaria è ora l'hook `Stop` del plugin,
@@ -153,7 +162,8 @@ invoke_agent({
   initiative_input: "Storytelling AI",
   task_input: "<il primo messaggio dell'utente, INTEGRALE>",
   tenant_slug: "<solo se il CLAUDE.md del progetto ha la riga tenant:>",
-  resume_from: "<solo con «riprendi SES-…», vedi 2.55>"
+  resume_from: "<solo con «riprendi SES-…», vedi 2.55>",
+  source: "<solo 'scheduled' dentro un task programmato, vedi 2.56>"
 })
 ```
 
