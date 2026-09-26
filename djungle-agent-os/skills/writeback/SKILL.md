@@ -325,12 +325,27 @@ Se errori in commit: list `errors[]` con `fact_index` e messaggio.
 - ❌ Non crea iniziative nuove — quello è compito di `/initiative create` o del Resolver+Classifier in `invoke_agent`.
 - ❌ Non chiude handoff pending — quello succede durante la chat con `acknowledge_handoff(status='consumed', notes)`.
 - ❌ Non sostituisce un `/sota-update` esplicito — è un complemento per i delta automatici.
-- ❌ Non auto-applica i delta Scribe senza review utente. Confidence=low già scartato server-side; medium/high sempre passa per review.
+- ❌ Non auto-applica i delta Scribe senza review utente **finché il /wb è in corso**. Confidence=low già scartato server-side. Se però il /wb si interrompe prima di `scribe_commit` o `scribe_reject`, il buffer non resta sospeso: lo finalizza il server (vedi «Edge case — /wb interrotto»).
 
-## Edge case — Buffer scaduto
+## Edge case — /wb interrotto (server v4.52.0+, BKL-0080)
 
-Se `scribe_review` ritorna `expires_at < now()`: il buffer è scaduto (TTL 24h, dovrebbe essere già marked `expired` dal cleanup function, ma defensive check). Comunica all'utente "buffer scaduto, ignoro" e procedi senza Step 5.
+Un buffer che nessuno conferma **non scade più in silenzio**. Lo sweep delle sessioni ferme lo finalizza quando né il buffer né la sessione si muovono da più della soglia di idle del tenant (default 30 minuti). `scribe_review` tocca la sessione, quindi un /wb in corso non viene preso a metà. Lo sweep gira col cron giornaliero e a ogni evento del Dispatcher sul tenant.
+
+Il server applica la **stessa commit policy** di `close_and_digest`:
+- HIGH in scope → SOTA;
+- il resto → coda di review (`/review-queue`, `/librarian-triage`).
+
+Partono **declassati**, cioè tutto in review e niente in SOTA:
+- i buffer oltre le 24 ore;
+- i tenant con `always_confirm`;
+- le sessioni meet e i client essential.
+
+Oltre i 30 giorni il buffer si chiude `expired` senza essere riversato.
+
+Due conseguenze per questa skill:
+- Se l'utente torna al dialog dopo la soglia, `scribe_review` può ritornare `buffer_id: null` e `scribe_commit` `applied: 0` senza errori: il buffer è già stato finalizzato. Non dire «niente da salvare». Di' che i fatti sono già stati smistati dal server e che quelli non scritti in SOTA sono in `/review-queue`.
+- `expires_at` non è più una scadenza per i fatti. Se `scribe_review` ritorna `expires_at < now()` su un buffer ancora `pending`, procedi con lo Step 5 come sempre: non ignorarlo.
 
 ## Edge case — Multi-session nella stessa chat
 
-Se l'utente ha invocato 2 agenti nella stessa chat e ora fa `/wb`, ogni session ha il proprio buffer. La skill chiude **solo la session corrente** (l'ultima invocata). Le altre restano open con i loro buffer pending — saranno processate al prossimo `/wb` per quella session, oppure offerte come "recovery" alla prossima invoke (vedi skill `/invoke` step 5).
+Se l'utente ha invocato 2 agenti nella stessa chat e ora fa `/wb`, ogni session ha il proprio buffer. La skill chiude **solo la session corrente** (l'ultima invocata). Le altre restano open con i loro buffer pending: le processa il prossimo `/wb` per quella session, o le offre il recovery alla prossima invoke (skill `/invoke` step 3.7). Se non succede nessuna delle due, dopo la soglia di idle le finalizza il server (vedi «Edge case — /wb interrotto»).

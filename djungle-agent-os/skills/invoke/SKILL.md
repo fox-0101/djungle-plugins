@@ -234,7 +234,7 @@ avviala se la richiesta è inequivocabile.
 
 ### 3.7. Recovery dei buffer Scribe pending (v3.3.0+)
 
-Se `result.pending_scribe_buffers` è non-vuoto, l'utente ha buffer di fact catturati da una sessione precedente abbandonata (TTL 24h). Prima di proseguire, propone:
+Se `result.pending_scribe_buffers` è non-vuoto, l'utente ha buffer di fact da un /wb non concluso. Da server v4.52.0 (BKL-0080) sono per forza recenti: dopo la soglia di idle del tenant (default 30 min) lo sweep li finalizza con la commit policy. Se l'utente non decide, i fatti non si perdono. Prima di proseguire, propone:
 
 ```
 ⚠️ Recovery Scribe — Ho 4 fact-update pending da una sessione di ~30 min fa
@@ -245,7 +245,7 @@ Vuoi processarli ora prima di partire? [Y / n / dopo]
 
 - **Y** → chiama `scribe_review({buffer_id})` per ognuno → mostra preview → conferma → `scribe_commit` (stesso flusso che la skill `/wb` userebbe — riusa quel pattern)
 - **n** → chiama `scribe_reject({buffer_id, reason: "user_dismissed_at_invoke"})` per ognuno
-- **dopo** → non fare nulla, lasciali pending — saranno offerti di nuovo alla prossima invoke o si auto-expire a 24h
+- **dopo** → non fare nulla e lasciali pending. Al prossimo sweep li finalizza il server con la commit policy del tenant: HIGH in scope in SOTA, il resto in `/review-queue`. Dopo le 24 ore vanno tutti in review.
 
 Solo se non c'è dialog_required ed è una nuova sessione: skip questo step se `dialog_required=true` (devi prima risolvere quello) o se l'utente sta riprendendo la stessa session (improbabile, ma defensive).
 
