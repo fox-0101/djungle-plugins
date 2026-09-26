@@ -89,13 +89,16 @@ Per scartare tutti: il /wb permette di scegliere "n".
 Annotazioni inline:
 - `· high` / `· medium` → confidence
 - `⚠️ iniziativa non riconosciuta` → `groups[i].resolved === false` (slug non match nel registry — andrà gestito al `/wb`)
-- countdown TTL ("scade tra Xh") in formato umano (es. "23h 12m")
+- età del buffer ("da 12m", "da 3h"): non un countdown, perché `expires_at` non fa più sparire niente (BKL-0080)
 
-#### Se `expires_at < now()` (buffer scaduto)
+#### Se il buffer è fermo da tempo (server v4.52.0+, BKL-0080)
+
+Un buffer pending che nessuno conferma lo finalizza lo sweep delle sessioni ferme, dopo la soglia di idle del tenant. Si applica la commit policy: HIGH in scope → SOTA, il resto → `/review-queue`. Oltre le 24 ore va tutto in review. Se `expires_at < now()` e il buffer è ancora pending, dillo così:
 
 ```
-Scribe buffer — scaduto (TTL 24h superato).
-Il sistema lo marcherà come 'expired' al prossimo cleanup. Niente da fare.
+Scribe buffer — fermo da Xh, non ancora finalizzato.
+Al prossimo sweep i fatti vanno in coda di review (oltre 24h non si scrive in SOTA).
+Per deciderli adesso: /wb.
 ```
 
 ### 4. Mai applicare
