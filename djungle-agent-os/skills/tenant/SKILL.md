@@ -93,8 +93,14 @@ alla domanda. Per legare stabilmente un PROGETTO a un tenant resta la riga
 Da v4.32 una chiamata che non dichiara niente, fatta da chi ha più di un
 workspace, non riceve dati: riceve `dialog_required: true` con l'elenco.
 
-Non è un errore e non va ritentata uguale. **Presenta le scelte all'utente**
-(default per primo) e richiama lo stesso tool aggiungendo:
+Non è un errore e non va ritentata uguale. Prima guarda se in questa chat c'è
+il marcatore `agentos-session`: se c'è, non serve chiedere niente (vedi sotto).
+Altrimenti **presenta le scelte all'utente** con lo strumento del client per le
+domande a scelta multipla, se c'è (in Claude Code `AskUserQuestion`): domanda
+= `dialog_payload.question`, etichetta `Workspace`, un'opzione per ogni voce di
+`dialog_payload.tenants[]` (`<brand_emoji> <name>`, descrizione lo slug), nessuna
+pre-selezionata. Senza lo strumento, chiedi in chat con le stesse opzioni
+(BKL-0102). Poi richiama lo stesso tool aggiungendo:
 
 - `session_id` — se in questa chat c'è il marcatore `agentos-session`, usa
   quello: è la risposta giusta quasi sempre, e non sposta niente;

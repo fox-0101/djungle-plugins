@@ -176,12 +176,32 @@ skill.
 
 If `result.dialog_required === true`:
 
+**Come si chiede — il popup prima del testo (BKL-0102).** Ogni dialogo porta
+già le opzioni strutturate nel payload. Se il client ha uno strumento per le
+domande a scelta multipla (in Claude Code è `AskUserQuestion`; su altri client
+può avere un altro nome), **usa quello**: l'utente sceglie con un clic invece
+di riscrivere uno slug, e la scelta torna esatta. Solo se lo strumento non c'è,
+fai la domanda in chat come testo, con le stesse opzioni numerate.
+
+Regole comuni per il popup:
+- **Domanda:** il testo del server (`dialog_payload.question` per il tenant,
+  `dialog_payload.message` per l'iniziativa), senza riformularlo.
+- **Etichetta breve** della domanda: `Workspace` o `Iniziativa`.
+- **Opzioni:** da 2 a 4. Se il server ne manda di più, mostra le prime 4 nell'ordine
+  del server (è già per default o per pertinenza): la voce libera «Altro» che il
+  client aggiunge da sé copre il resto — se l'utente la usa e scrive un nome,
+  richiama `invoke_agent` con quello.
+- **Nessuna opzione pre-selezionata e nessun «(consigliato)»:** vale soprattutto
+  per il tenant, vedi sotto.
+- Una domanda per popup. Il tenant viene prima; se dopo la scelta arriva anche un
+  dialogo sull'iniziativa, è un secondo popup.
+
 **`dialog_payload.kind === 'tenant'` (ADR-029) — viene PRIMA di ogni altro.**
 Il server non sa su quale workspace aprire la sessione e non lo indovina:
-`session_id` è vuoto e non è stato creato niente. Presenta la domanda di
-`dialog_payload.question` e le opzioni di `dialog_payload.tenants[]` (slug,
-name, brand_emoji — il primo è il default). Poi richiama
-`invoke_agent({agent_name, tenant_slug: <slug scelto>})`.
+`session_id` è vuoto e non è stato creato niente. Le opzioni sono
+`dialog_payload.tenants[]`: etichetta `<brand_emoji> <name>`, descrizione
+`<slug>` (più «default per le sessioni nuove» su quello con `is_default: true`).
+Poi richiama `invoke_agent({agent_name, tenant_slug: <slug scelto>})`.
 
 Compare solo a chi ha più di un workspace. Se c'è la riga `tenant:` nel
 CLAUDE.md del progetto, **passala fin dalla prima chiamata** e la domanda non
@@ -193,10 +213,16 @@ sotto i piedi: è esattamente il motivo per cui il server ha smesso di
 deciderlo da solo, e tre settimane di lavoro sono finite nel posto sbagliato
 senza che nessuno se ne accorgesse.
 
-- `dialog_payload.kind === 'ambiguous'` → show the candidates from `dialog_payload.options[]` (slug, name, reason). Ask user to pick. Re-call `invoke_agent({agent_name, initiative_input: <chosen-slug>})`.
-- `dialog_payload.kind === 'confirm'` → ask "È <name> (<slug>)?" Yes → re-call with that slug. No → ask user what they meant.
-- `dialog_payload.kind === 'not_found_with_classifier'` → the classifier suggested it might be a new initiative. Show its message + classifier reasoning. If user says "yes, create it", call `create_initiative({slug, name, type, domain_slug, tenant_slug})` first, then re-call invoke_agent with the new slug. **`tenant_slug` qui è obbligatorio** (ADR-014a A1b): in questo punto del dialog la sessione NON esiste ancora (`dialog_required` ritorna `session_id` vuoto per contratto), quindi il tenant va dichiarato — è quello della riga `tenant:` del CLAUDE.md se c'è, altrimenti quello mostrato in pre-flight. Senza, il server rifiuta: creare nel tenant sbagliato non collide, duplica in silenzio.
-- `dialog_payload.kind === 'not_found_no_match'` → no match and no classifier insight. Ask user if they want to skip (re-call `invoke_agent` without `initiative_input`) or create a new initiative manually.
+**Iniziativa.** Le opzioni sono `dialog_payload.options[]` (`slug`, `name`,
+`reason`). `reason` è un codice tecnico del match: in descrizione scrivilo per
+esteso — `exact_slug` «slug identico», `exact_name` «nome identico»,
+`substring` «il nome contiene quello che hai scritto», `levenshtein` «nome
+simile» — insieme allo slug.
+
+- `kind === 'ambiguous'` → popup con i candidati. Re-call `invoke_agent({agent_name, initiative_input: <chosen-slug>})`.
+- `kind === 'confirm'` → popup a due opzioni: «Sì, <name>» / «No, un'altra». Sì → re-call con quello slug. No → chiedi cosa intendeva (o usa quello che ha scritto in «Altro»).
+- `kind === 'not_found_with_classifier'` → il classifier pensa sia un'iniziativa nuova. Popup con `message` e due opzioni: «Creala» / «Procedi senza iniziativa». Se «Creala», call `create_initiative({slug, name, type, domain_slug, tenant_slug})` first, then re-call invoke_agent with the new slug. **`tenant_slug` qui è obbligatorio** (ADR-014a A1b): in questo punto del dialog la sessione NON esiste ancora (`dialog_required` ritorna `session_id` vuoto per contratto), quindi il tenant va dichiarato — è quello della riga `tenant:` del CLAUDE.md se c'è, altrimenti quello scelto nel dialogo tenant o mostrato in pre-flight. Senza, il server rifiuta la chiamata.
+- `kind === 'not_found_no_match'` → popup con `message` e due opzioni: «Procedi senza iniziativa» (re-call `invoke_agent` without `initiative_input`) / «Creane una nuova» (poi come sopra).
 
 **Do not adopt the agent identity until the dialog is resolved.** No session is created during dialog turns.
 
