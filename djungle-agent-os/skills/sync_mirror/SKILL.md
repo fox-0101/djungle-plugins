@@ -98,6 +98,8 @@ For each `file` in `response.files`:
    - **Exists, hash differs** → DRIFT. **Do NOT overwrite** unless `overwrite_existing: true`. Add to `drift_files` list.
 3. Use `file.content_hash` as expected hash; compute SHA-256 of local file content for the comparison.
 
+Write `file.content` exactly as received. Since server 4.63.0 each handoff file starts — right after the YAML frontmatter, before the `# title` — with a ```text code block holding the launch command (`invoca <Agente> su <tenant>, handoff HND-…`, one line per recipient): it is part of the content, don't strip or rebuild it. Files written before 4.63.0 don't have it and stay as they are: their local hash still matches the `content_hash` stored at creation, so they count as `unchanged`. The command for an old handoff is in the portal (Handoff page) or in `list_pending_handoffs` (`launch_commands`).
+
 ### 5. Report
 
 Show a concise summary:

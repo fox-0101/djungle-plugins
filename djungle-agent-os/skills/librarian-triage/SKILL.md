@@ -106,6 +106,13 @@ la SOTA con `get_sota_section` e falla vedere nella preview). `open_handoff`
 vuole `from_agent` e `to_agents` (risolvi il nome fatto dall'utente con
 `list_agents`). Entrambi vogliono `session_id` dentro `params`.
 
+Dopo un `open_handoff` riuscito, la risposta di `apply_triage_action` (server
+≥4.63.1) porta `launch_command` e `launch_url` dell'handoff creato: mostrali
+**sempre**, così come sono, prima di passare all'item successivo. Il comando va
+in un blocco di codice, il link come `[Avvia nuova sessione](<launch_url>)`. Uno
+per destinatario se sono array. Non comporli a mano: il testo è del server
+(BKL-0115), uguale in chat, nel portal e nel mirror.
+
 Sui **fatti in review** valgono SOLO tre verdetti (§6.3, T13): accettare
 (`confirm_acknowledge` → il fatto va nella SOTA), scartare (`dismiss`),
 rimandare (`defer`). Le altre azioni sono rifiutate dal server: non provarle.
