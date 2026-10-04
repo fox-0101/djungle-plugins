@@ -193,6 +193,39 @@ Su Y → tool MCP risponde con `new_version: 4`. Aggiorna l'utente:
   Storia: v1 · v2 · v3 · v4 (4 versioni totali)
 ```
 
+### `/agent feedback <slug>` (v4.22.0, ADR-025 Fase 0)
+
+Mostra i giudizi che l'utente ha dato sulla qualità dell'output dell'agente,
+catturati automaticamente dal digest — **non** i fatti di dominio, che vanno
+nella SOTA.
+
+```
+list_agent_feedback({ agent_slug: "<slug>", since?: "2026-08-01", polarity?: "correction" })
+```
+
+Rendi così:
+
+```
+Feedback su Doc — 12 giudizi (9 correzioni, 3 conferme)
+Per aspetto: domain 5 · format 4 · tone 2 · guardrail 1
+
+19/08  correzione · domain
+       "sbagliato, il pricing è quello v4"
+18/08  conferma · format
+       "perfetto così, la tabella è leggibile"
+```
+
+**Read-only, ed è voluto.** In Fase 0 si guardano i dati e basta: il tuner che
+propone versioni di prompt parte solo dopo tre settimane di raccolta e un ok
+esplicito di Alessandro sui numeri. Se l'utente chiede di applicare una
+correzione al prompt, si usa `/agent update` a mano — non c'è (ancora) un
+percorso automatico, e prometterlo sarebbe falso.
+
+La cattura è server-side: nessuna istruzione va aggiunta ai prompt degli
+agenti, e non serve che l'utente dica "registra questo feedback". Se non
+compare nulla, o non ci sono stati giudizi espliciti, o le sessioni non sono
+state digerite.
+
 ## Important rules
 
 - **Owner-only writes:** non puoi modificare agenti di altri tenant (RLS lo blocca). Per modificare il tuo, devi essere `owner_tenant_id = current tenant`.
