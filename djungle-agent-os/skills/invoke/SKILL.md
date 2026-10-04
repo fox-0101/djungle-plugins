@@ -243,7 +243,9 @@ User asks "quali agenti", "lista agenti": call `list_agents()` — only entry po
 
 ## Filesystem mirror (optional, Cowork desktop / Claude Code)
 
-If you have filesystem access AND the activated agent (or the user) creates a handoff via `create_handoff(...)`, the response includes `file_path` (relative) and `mirror_content` (full markdown). Write it to disk under the standard Claude documents folder.
+Whenever the activated agent (or the user) creates a handoff via `create_handoff(...)`, show the user the `launch_command` from the response **verbatim, in a code block**, followed by `[Avvia nuova sessione](<launch_url>)` (one block + link per recipient when they are arrays) — ALWAYS, with or without filesystem access. The command is what to paste in a new session to start the recipient on that handoff; the link opens a new Cowork session with it already typed (not sent). The server composes both: never rebuild them (BKL-0115).
+
+If you have filesystem access, the response also includes `file_path` (relative) and `mirror_content` (full markdown). Write it to disk under the standard Claude documents folder.
 
 **CRITICAL — path is absolute from `$HOME`, never relative to cwd**:
 

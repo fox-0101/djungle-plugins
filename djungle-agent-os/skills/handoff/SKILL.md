@@ -71,7 +71,9 @@ Response include:
 - `id`, `code` (es. `HND-0042`)
 - `file_path` (es. `handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md`) — **path RELATIVO**
 - `content_hash` (sha256)
-- `mirror_content` (markdown completo con YAML frontmatter)
+- `mirror_content` (markdown completo con YAML frontmatter; il comando di avvio è già dentro, subito dopo il frontmatter)
+- `launch_command` (server ≥4.63.0, BKL-0115) — il comando da incollare in una sessione nuova per far partire il destinatario: **stringa** con un destinatario, **array** (uno per destinatario, nell'ordine di `to_agents`) con più di uno. Lo compone il server: **non ricostruirlo, non riformularlo, non tradurlo**.
+- `launch_url` (server ≥4.63.0, stessa forma di `launch_command`) — il deep link `claude://cowork/new?q=…` che apre una sessione Cowork nuova con quel comando già scritto nel composer, **non inviato**. Cowork mostra prima un avviso perché il link arriva da fuori: è normale. Il link non sceglie il progetto: per aprire la sessione in un progetto preciso si usa il comando da copiare.
 
 ### 5. Write the filesystem mirror — HARD GUARD v3.2.2
 
@@ -131,7 +133,13 @@ Se uno dei guard fallisce → **rollback intenzione**: NON dire all'utente "scri
 
 > **Bug v3.1.x e v3.2.0** ricorrente: la skill scriveva `mirror_content` su `file_path` raw (es. `handoffs/2026-...md`), che diventava `$CWD/handoffs/2026-...md`. Se cwd era `~/Documents/`, il file finiva in `~/Documents/handoffs/` invece di `~/Documents/Claude/djungle-context/handoffs/`. Il guard `startswith($HOME/Documents/Claude/)` cattura questo errore prima del write.
 
-### 6. Confirm to user
+### 6. Confirm to user — SEMPRE col comando di avvio
+
+La conferma si chiude **sempre** con le due vie di lancio, affiancate, per ogni destinatario (Alessandro sceglie caso per caso):
+1. `launch_command` in un blocco di codice, copiato così com'è dalla risposta — per aprire la sessione a mano nel progetto che vuole;
+2. `launch_url` come link markdown `[Avvia nuova sessione](<launch_url>)` — apre Cowork col comando già scritto.
+
+Un blocco e un link per destinatario se sono array (stesso ordine). Non è opzionale e non dipende dalla priorità: senza il blocco l'handoff resta in coda finché qualcuno non se lo ricorda.
 
 ```
 Handoff HND-0042 creato.
@@ -140,7 +148,18 @@ Handoff HND-0042 creato.
   Topic: Brief copy investor pitch
   Mirror: ~/Documents/Claude/djungle-context/handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md ✓
   Lora lo riceverà in pending_handoffs[] alla prossima /invoke lora.
+
+Per avviarlo in una sessione nuova:
 ```
+
+````
+```text
+invoca Lora su djungle, handoff HND-0042
+```
+[Avvia nuova sessione](claude://cowork/new?q=invoca%20Lora%20su%20djungle%2C%20handoff%20HND-0042)
+````
+
+Se `launch_command` manca (server < 4.63.0), dillo in una riga — «comando di avvio non disponibile: server da aggiornare» — invece di comporlo a mano.
 
 Se `session_id` non disponibile: recupero da `skills/_shared/session-threading.md` (marcatore → `list_open_sessions` con conferma → errore "nessuna sessione attiva: apri con `/invoke <agente>` e ripeti"). L'handoff orfano NON è più producibile: il server ≥4.12.1 lo rifiuta (ADR-014a).
 Se `initiative_id` non disponibile: segnalare "non linkato a iniziativa — non apparirà in /probe".
@@ -168,6 +187,8 @@ Returns timeline `change_type`, `changed_by`, `ts`, `diff_summary`.
 - **Filesystem write fails** o **path guard fails** → log warning specifico, NON dire "scritto", DB resta canonical.
 
 ## What NOT to do
+
+- ❌ NON chiudere la conferma senza il blocco con `launch_command` e il link `launch_url`, e NON comporre né comando né link a mano: il testo è del server (BKL-0115), identico in chat, nel portal e nel mirror.
 
 - ❌ **NON inventare un `from_agent` diverso da `session.agent_id`.** Mai. Anche se "narrativamente sembrerebbe più appropriato". L'attribution è fattuale, non narrativa.
 - ❌ NON omettere `session_id` — il server lo rifiuta (ADR-014a) e senza si perde causalità.
