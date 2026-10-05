@@ -28,6 +28,7 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 - **`probe_payload`** — SOLO con `probe_level: "full"` (questa skill NON lo passa: il default lean basta; il probe pieno è per `/probe`)
 - **`dialog_required`** — true if a user choice is needed: quale workspace (`kind: 'tenant'`, ADR-029) oppure quale iniziativa (ambiguous match o classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
 - **`pending_scribe_buffers`** (v3.3.0+) — buffer Scribe ancora pending dell'utente (escluso il buffer della session appena creata). Se non vuoto, vedi Step 3.7 — recovery dialog prima di partire col task.
+- **`cattura_per_turno`** (server ≥ 4.65.0, BKL-0116) — se la cattura per turno (hook Stop del plugin) arriva davvero: `stato` `attiva` | `parziale` | `spenta`, con `rimedio` quando non è attiva. Assente se le sessioni recenti sono troppo poche per giudicare. Vedi Step 3.8.
 
 
 > **Marcatore di sessione (ADR-014b, v4.7.0 — OBBLIGATORIO).** Subito dopo ogni
@@ -275,6 +276,18 @@ Vuoi processarli ora prima di partire? [Y / n / dopo]
 - **dopo** → non fare nulla e lasciali pending. Al prossimo sweep li finalizza il server con la commit policy del tenant: HIGH in scope in SOTA, il resto in `/review-queue`. Dopo le 24 ore vanno tutti in review.
 
 Solo se non c'è dialog_required ed è una nuova sessione: skip questo step se `dialog_required=true` (devi prima risolvere quello) o se l'utente sta riprendendo la stessa session (improbabile, ma defensive).
+
+### 3.8. Avviso sulla cattura per turno (server ≥ 4.65.0, BKL-0116)
+
+Se `result.cattura_per_turno.stato` è `spenta` o `parziale`, mostra **una riga**, prima di partire col task, col testo di `rimedio` riassunto, per esempio:
+
+```
+⚠️ Cattura per turno spenta: i fatti di questa chat arrivano solo con /wb. Per accenderla: API key personale nelle impostazioni del plugin.
+```
+
+Una volta per chat, non a ogni invoke della stessa chat. Non bloccare il task e non chiedere niente: è un'informazione. Con `attiva` o senza il campo, non dire nulla.
+
+Perché esiste: senza la API key nelle impostazioni del plugin l'hook resta spento in silenzio. Il 02/10 si è scoperto che in 30 giorni aveva catturato 2 turni, e nessuno se n'era accorto.
 
 ### 4. Surface pending handoffs (if any)
 
