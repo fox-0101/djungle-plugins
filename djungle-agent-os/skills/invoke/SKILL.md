@@ -282,12 +282,14 @@ Solo se non c'è dialog_required ed è una nuova sessione: skip questo step se `
 Se `result.cattura_per_turno.stato` è `spenta` o `parziale`, mostra **una riga**, prima di partire col task, col testo di `rimedio` riassunto, per esempio:
 
 ```
-⚠️ Cattura per turno spenta: i fatti di questa chat arrivano solo con /wb. Per accenderla: API key personale nelle impostazioni del plugin.
+⚠️ Cattura per turno parziale (2 chat su 33): in questa chat i fatti arrivano solo con /wb.
 ```
 
 Una volta per chat, non a ogni invoke della stessa chat. Non bloccare il task e non chiedere niente: è un'informazione. Con `attiva` o senza il campo, non dire nulla.
 
-Perché esiste: senza la API key nelle impostazioni del plugin l'hook resta spento in silenzio. Il 02/10 si è scoperto che in 30 giorni aveva catturato 2 turni, e nessuno se n'era accorto.
+Perché esiste: la cattura per turno arriva solo dalla scheda Code (verificato il 05/10: in Cowork l'hook non produce chiamate; in Chat e su claude.ai web gli hook non esistono). Il 02/10 si è scoperto che in 30 giorni aveva catturato 2 turni, e nessuno se n'era accorto. Non suggerire di «incollare la chiave»: in Cowork non basta.
+
+**`promemoria_wb`** (server ≥ 4.66.0). Qualunque tool chiamato col `session_id` può tornare con un campo `promemoria_wb`: la sessione è aperta da più di 45 minuti e non è stata catturata. Riportalo all'utente in una riga («Quando chiudiamo, fai /wb per salvare la sessione»), senza interrompere il lavoro. Il server lo manda al massimo ogni due ore.
 
 ### 4. Surface pending handoffs (if any)
 
