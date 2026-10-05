@@ -150,9 +150,10 @@ close_and_digest({
 - **Idempotente**: se la sessione era già stata chiusa (es. con `/wb`), è un no-op.
 
 Se è la prima invoke della chat (nessuna sessione precedente), salta questo step.
-Nota: il server chiude comunque le sessioni precedenti rimaste aperte come safety
-net, ma senza il transcript NON le digerisce — per questo è importante che la
-skill passi il transcript qui.
+Nota: dal server 4.64.0 (BKL-0116) l'invoke chiude da sé solo le sessioni chat
+di questo utente ferme da più di due ore, e senza transcript NON le digerisce.
+Le sessioni vive di altre chat, le call e le sessioni programmate restano aperte.
+Per questo la sessione precedente di QUESTA chat va chiusa qui, col transcript.
 
 ### 3. Call `invoke_agent` (single call)
 
