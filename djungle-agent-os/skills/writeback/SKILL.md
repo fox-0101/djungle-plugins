@@ -23,13 +23,15 @@ Terzo step del cycle Agent OS: **INVOKE > CHAT > WRITEBACK > EVOLVE**.
 > (vedi «Dove finiscono i fatti» sotto). `/wb` resta per chi vuole chiudere e
 > rivedere **subito** con controllo pieno — è il path interattivo qui descritto.
 >
-> **Stato misurato al 22/09/2026: l'hook non arriva al server.** `last_digest_at` è vuoto
-> su tutte le sessioni dal 26/08 tranne una (BKL-0039). Finché non è corretto,
-> una sessione chiusa senza `/wb` (nuova invoke, inattività) **non salva niente**:
-> il `/wb` non è un override, è l'unico writeback che funziona.
->
-> Richiede: Personal API Key configurata nel plugin (userConfig `api_key`).
-> Fuori da Cowork (web/desktop) gli hook non scattano → resta il `/wb` manuale.
+> **Stato verificato al 05/10/2026 (BKL-0116): l'hook arriva al server solo dalla
+> scheda Code** dell'app, che legge `AGENT_OS_API_KEY` dalle impostazioni
+> (`~/.claude/settings.json`). In **Cowork** l'hook non produce chiamate (prova
+> del 05/10: zero in 20 minuti di sessione viva); in **Chat** e su **claude.ai web**
+> gli hook non esistono. Lì una sessione chiusa senza `/wb` (inattività, o una
+> nuova invoke dopo due ore di fermo) **non salva niente**: il `/wb` non è un
+> override, è l'unico writeback che funziona. Il server lo ricorda: l'invoke
+> riporta `cattura_per_turno`, e i tool chiamati dopo 45 minuti di chat non
+> catturata tornano con `promemoria_wb`.
 
 > **v4.5.0 — cambio architetturale (ADR-008a).** Fino alla v4.4 la cattura
 > dei fact dipendeva dall'agente che chiamava `scribe_capture` in-prompt dopo
