@@ -121,7 +121,13 @@ rispettare:
 - **mandare in sviluppo** lo decide una persona elencata nella policy, non tu:
   proponilo, non farlo;
 - un ADR approvato **non si riscrive**: per cambiarlo si riapre la
-  progettazione (`status: "proposed"`) e le review ricominciano.
+  progettazione (`status: "proposed"`) e le review ricominciano;
+- il **rilascio** lo registrano i webhook GitHub/Vercel: il codice (BKL-NNNN,
+  ADR-NNN) nel titolo della PR o nel branch porta gli item in review, ma un
+  deploy in produzione chiude solo ciò che la consegna dichiara di chiudere,
+  con una riga che INIZIA con la parola di chiusura (`Chiude ADR-040`,
+  `Closes BKL-0042`) nella descrizione della PR o nel commit. In una consegna
+  a più parti, scrivila solo nell'ultima.
 
 `get_adr` mostra nel blocco `governance` lo stato del quorum, chi manca, i
 veti e chi ha inviato in sviluppo.
