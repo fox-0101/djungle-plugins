@@ -17,13 +17,12 @@ Attiva un agente dicendo "invoca [nome]" o "attiva [nome]". Claude diventa quell
 - "fammi parlare con Iron"
 - "quali agenti ho?"
 
-### Writeback
-Chiudi una sessione e salva tutto. Dici "writeback" o "salva sessione" e il sistema analizza la conversazione, estrae decisioni, learnings, feedback, e li salva.
+### Salva
+L'agente ti propone di salvare quando nella conversazione c'è qualcosa che vale la pena tenere: una decisione, una data, un impegno. Compare un popup con "Salva tutto", "Fammi scegliere" o "Più tardi", e basta un tocco. La sessione resta aperta.
 
-**Esempi:**
-- "writeback"
-- "wb"
-- "salva sessione"
+Puoi anche chiederlo tu:
+- "salva" o "/salva": salva adesso e continua
+- "salva e chiudi" o "/wb": salva e chiude la sessione
 
 ## Setup (zero terminale)
 
