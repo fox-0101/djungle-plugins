@@ -38,7 +38,8 @@ Connette Claude al server MCP multi-tenant di Djungle.
 
 **Skills:**
 - `invoke` — attiva un agente per nome (Dean, Lora, Vince, Spacey, Iron, Set, Focus, Doc, Bookey)
-- `writeback` — chiude la sessione salvando summary, learnings, decisioni, memory logs
+- `salva` — salva i fatti della conversazione senza chiudere la sessione (l'agente lo propone con un popup)
+- `writeback` — salva e chiude la sessione (`/wb`): summary, learnings, decisioni, memory logs
 
 **Tool MCP esposti (13):** `list_agents`, `get_agent`, `invoke_agent`, `write_memory_log`, `list_memory_logs`, `create_session`, `close_session`, `create_handoff`, `list_pending_handoffs`, `acknowledge_handoff`, `write_tenant_knowledge`, `list_tenant_knowledge`.
 

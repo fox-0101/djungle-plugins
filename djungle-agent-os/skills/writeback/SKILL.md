@@ -1,10 +1,23 @@
 ---
 name: writeback
 description: |
-  Session writeback command for Agent OS. Use this skill whenever the user says "/writeback", "writeback", "salva sessione", "chiudi sessione", "session log", "wb", or any variation of wanting to save/log what happened during an agent session. This is the WRITEBACK step of the Agent OS flow (INVOKE > CHAT > WRITEBACK > EVOLVE). v4.5.0 introduce la Session Digestion server-side (scribe_digest): la cattura dei fact non dipende più dall'agente in-prompt — il server estrae i fact dal transcript completo con Haiku al momento del /wb, poi review + commit con conferma utente.
+  Salva la sessione Agent OS e la chiude. Usa questa skill quando l'utente dice "/wb", "wb", "/writeback", "writeback", "salva e chiudi", "salva sessione", "chiudi sessione", "session log", o comunque vuole salvare e chiudere quello che è successo in una sessione con un agente. Per salvare SENZA chiudere ("salva", "/salva", il popup Salva proposto dall'agente) c'è la skill salva. È il passo WRITEBACK del flusso Agent OS (INVOKE > CHAT > WRITEBACK > EVOLVE): il server estrae i fatti dal transcript completo, poi l'utente conferma con un popup a tocco.
 ---
 
-# Writeback — Agent OS Session Logger (v4.5.0)
+# Writeback — salva e chiudi la sessione (v4.5.0 · plugin 4.41.0)
+
+> **Plugin 4.41.0 — con l'utente si dice «salva» (BKL-0126).** "Writeback" e
+> "/wb" restano i nomi tecnici e i comandi validi, ma nei testi rivolti
+> all'utente la parola è **salva**. Salvare a metà sessione, senza chiudere, è
+> la skill `salva` (e il modulo MOD-salva negli agenti, che propone il popup da
+> solo). Questa skill salva **e chiude**.
+>
+> **Se in questa sessione si è già salvato con Salva** (`digest_turn`),
+> `scribe_digest` risponde `already_digested` e non rilegge i turni nuovi. Prima
+> dello Step 3.5 passa a `digest_turn({session_id, agent_id, transcript_delta})`
+> i turni successivi all'ultimo salvataggio: il server scarta da solo quelli già
+> digeriti, quindi nel dubbio manda tutto. Poi lo Step 4 troverà il buffer vuoto
+> e lo Step 6 riporta l'esito di `digest_turn`.
 
 Close the loop on every agent session. Pipeline:
 
@@ -219,39 +232,32 @@ Response shape:
 
 Se `buffer_id === null` o `facts.length === 0`: niente fact catturati, salta a Step 6.
 
-### Step 5 — Review batch con utente
+### Step 5 — Conferma con un tocco (plugin 4.41.0)
 
-Mostra preview raggruppato. Esempio output:
+Se il client ha lo strumento di domanda a scelta multipla (AskUserQuestion in
+Code e in Cowork), la conferma è un popup, non un testo da scrivere:
+
+- question: "Salvo quello che abbiamo deciso?" · header: "Salva · N"
+- **"Salva tutto (N)"**, con descrizione = i fatti in breve, separati da ";"
+  → `scribe_commit({buffer_id})`
+- **"Fammi scegliere"** → secondo popup `multiSelect`, una casella per fatto
+  (label di poche parole, descrizione = il delta). Lo strumento regge 4
+  opzioni per domanda: oltre 4 fatti, fai più domande nello stesso popup
+  (fino a 4 domande da 4). Poi `scribe_commit({buffer_id, accepted_fact_indices})`.
+- **"Non salvare"** → `scribe_reject({buffer_id, reason: "user_rejected_all"})`
+
+Prima del popup, se i fatti toccano più iniziative, mostra il raggruppamento in
+poche righe, così la descrizione delle opzioni resta corta:
 
 ```
-Pipeline Scribe ha rilevato 5 fact-update su 3 iniziative. Confermi?
-
-[1] agent-os-platform · Agent OS Platform
-    last_3_moves: + "(2026-05-10) Pubblicato endpoint /state"
-    decisions_log: + [2026-05-10] Schema visibility binario public/private — owner_tenant_id univoco
-
-[2] bp-djungle-holding-2026 · BP Djungle Holding 2026
-    stage: building → delivered
-    last_3_moves: + "(2026-05-10) Inviato BP a soci 14 maggio"
-
-[3] storytelling-ai · Storytelling AI
-    open_loops: + "[2026-05-10] Validare pricing tier consumer"
-
-Y / n / review-singolo
+5 fatti su 3 iniziative:
+- agent-os-platform: endpoint /state pubblicato; visibility binaria public/private
+- bp-djungle-holding-2026: BP inviato ai soci (stage → delivered)
+- storytelling-ai: aperto "validare pricing tier consumer"
 ```
 
-Opzioni:
-
-- **Y** (default) → `scribe_commit({buffer_id})` → applica TUTTI i delta in transazione
-- **n** → `scribe_reject({buffer_id, reason: "user_rejected_all"})`
-- **review-singolo** → per ogni fact mostra:
-  ```
-  [1/5] agent-os-platform · last_3_moves
-        + "(2026-05-10) Pubblicato endpoint /state"
-        confidence: high · "...source quote..."
-        Y / n
-  ```
-  Accumula gli `accepted_fact_indices`, poi `scribe_commit({buffer_id, accepted_fact_indices})`.
+**Senza strumento di domanda** (dove il client non lo offre), stessa scelta a
+testo: `Salva tutto (N) / Fammi scegliere / Non salvare`.
 
 Se `groups[i].resolved === false` (slug non match nel registry):
 - non rifiutarlo silenziosamente
@@ -292,23 +298,20 @@ Al massimo **una** proposta per sessione. La skill **non** si installa da
 qui: diventa attiva solo se il triage la accetta e un umano fa il merge della
 PR sul plugin. Se vale anche nel resto del flusso, lo dirà ADR-035.
 
-### Step 6 — Confirm to user
+### Step 6 — Esito, in una riga
+
+La prima riga dice **dove** sono finiti i fatti, con i numeri della risposta:
 
 ```
-Writeback completato per Doc
-
-Session SES-INV-... chiusa (initiative: agent-os-platform)
-Performance: Good
-3 memory_logs scritti (linkati ad agent-os-platform)
-
-Scribe pipeline:
-  ✅ 4 fact applicati su 2 iniziative (agent-os-platform, bp-djungle-holding-2026)
-  ⏭ 1 fact scartato in review-singolo
-  ⚠ 0 errori
+Salvato: 4 in agent-os-platform e bp-djungle-holding-2026, 1 da rivedere. Sessione SES-INV-… chiusa.
 ```
 
-Se nessuna pipeline Scribe (Step 4 vuoto): ometti la sezione "Scribe pipeline".
-Se errori in commit: list `errors[]` con `fact_index` e messaggio.
+- Aggiungi "N nella memoria di <agente>" se `memorized_to_agent > 0`, e "M
+  scartati" se l'utente ne ha tolti con "Fammi scegliere".
+- Se ci sono errori di commit, elencali sotto (`fact_index` e messaggio).
+- Summary, rating e memory_logs non vanno in questa riga: se servono, una
+  riga sotto ("3 memorie scritte, linkate ad agent-os-platform").
+- Niente "writeback completato": la parola per l'utente è "salvato".
 
 ## Important Notes
 
