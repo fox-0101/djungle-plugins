@@ -40,6 +40,12 @@ Più la quinta, che non va in tabella: **serve un ADR?**
   o una decisione che qualcuno rileggerà fra sei mesi chiedendosi perché.
 - **No** per tutto il resto: un item piccolo si chiude con un prompt diretto.
 
+Se serve un ADR, proponi anche il **livello di decisione** (ADR-040): **L1**
+strategico (piattaforma, migrazione core, stack), **L2** architetturale
+(integrazione, nuovo agente, servizio), **L3** operativo (configurazione, fix,
+ottimizzazione). Sotto una policy di governance il livello decide quanti
+revisori servono, e senza livello l'ADR non si approva.
+
 Presenta la proposta compatta e chiedi conferma in blocco:
 
 ```
@@ -78,7 +84,8 @@ create_adr({
   session_id: "<uuid>", project_slug: "belloemeglio",
   title: "...", body_md: "...",
   implementation_brief: "<obiettivo, file coinvolti, vincoli, cosa NON toccare>",
-  backlog_refs: ["BKL-0008"]
+  backlog_refs: ["BKL-0008"],
+  decision_level: "L2"
 })
 ```
 
@@ -100,6 +107,34 @@ Poi, quando l'utente decide di mandarlo in lavorazione:
 update_adr_status({ code: "ADR-0NN", status: "approved" })
 update_adr_status({ code: "ADR-0NN", status: "in_implementation" })
 ```
+
+**Se il progetto ha una policy di governance** (`get_governance_policy`,
+ADR-040), queste due chiamate non sono tue da decidere, e il server lo fa
+rispettare:
+
+- **approvare** vuole le review del livello: `review_adr` da parte dei
+  revisori, con la review incrociata (chi ha scritto la versione corrente non
+  si approva). Alla nascita dell'ADR parte da solo un handoff all'agente
+  revisore dell'altra parte, se configurato. Se `update_adr_status` rifiuta,
+  il messaggio dice chi manca: riportalo all'utente così com'è, non cercare
+  scorciatoie;
+- **mandare in sviluppo** lo decide una persona elencata nella policy, non tu:
+  proponilo, non farlo;
+- un ADR approvato **non si riscrive**: per cambiarlo si riapre la
+  progettazione (`status: "proposed"`) e le review ricominciano;
+- il **rilascio** lo registrano i webhook GitHub/Vercel: il codice (BKL-NNNN,
+  ADR-NNN) nel titolo della PR o nel branch porta gli item in review, ma un
+  deploy in produzione chiude solo ciò che la consegna dichiara di chiudere,
+  con una riga a sé (dopo una riga vuota, o come punto elenco) che contiene
+  solo la parola di chiusura e i codici (`Chiude ADR-040`, `Closes BKL-0042,
+  BKL-0043`) nella descrizione della PR o nel commit: «Chiude ADR-040 parte 1» o «- Parte 2: chiude ADR-040» non
+  chiudono. In una consegna a più parti, scrivila solo nell'ultima. Un deploy
+  in produzione chiude solo se a promuoverlo è un release_owner riconosciuto
+  (`github_login` / `vercel_user_id` in `members` della policy): se no lascia
+  un alert o una nota, e l'item si chiude a mano.
+
+`get_adr` mostra nel blocco `governance` lo stato del quorum, chi manca, i
+veti e chi ha inviato in sviluppo.
 
 Da lì l'implementatore apre e dice solo *"procedi con quello che c'è da
 implementare"*: `get_next_adr` gli serve body + brief.
@@ -155,6 +190,8 @@ non può averne reso falsa la descrizione.
   proposta è ovvia.
 - ❌ **Non produrre un work order.** Bozza di ADR o prompt diretto.
 - ❌ **Non inventare il code dell'ADR**: lo assegna il server.
+- ❌ **Sotto policy di governance, non approvare e non mandare in sviluppo al
+  posto delle persone a cui spetta** (ADR-040): proponi, e lascia decidere.
 - ❌ **Non mettere una data**: la priorità è tua, il calendario è di Focus.
 - ❌ **Non chiudere gli item da cliente** senza la risposta al cliente: il
   server rifiuta, ed è voluto.

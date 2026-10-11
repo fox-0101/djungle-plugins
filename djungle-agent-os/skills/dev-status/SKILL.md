@@ -67,8 +67,10 @@ Regole di resa:
 ## Cosa NON fa
 
 - ❌ Non scrive, non triagea, non chiude nulla. Per quello: `/triage`.
-- ❌ Non inventa lo stato della CI né l'ultimo deploy: **oggi non sono in
-  questi dati.** Arrivano con la pagina `/dev` del portal, che legge le API
-  GitHub e Vercel. Se l'utente li chiede, dillo invece di stimarli.
+- ❌ Non inventa lo stato della CI né l'ultimo deploy: **non sono in questi
+  dati.** Dove un progetto ha una policy di governance e i webhook GitHub e
+  Vercel accesi (ADR-040), `get_adr` mostra gli eventi di rilascio di un ADR
+  (PR, deploy, chi li ha fatti) e `list_events` quelli del tenant: puoi
+  citarli. Altrimenti, se l'utente li chiede, dillo invece di stimarli.
 - ❌ Non elenca i siti-cliente belloemeglio: non sono progetti, sono il
   prodotto della fabbrica (ADR-024 §2.5).
