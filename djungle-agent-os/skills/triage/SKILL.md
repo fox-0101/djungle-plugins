@@ -125,9 +125,9 @@ rispettare:
 - il **rilascio** lo registrano i webhook GitHub/Vercel: il codice (BKL-NNNN,
   ADR-NNN) nel titolo della PR o nel branch porta gli item in review, ma un
   deploy in produzione chiude solo ciò che la consegna dichiara di chiudere,
-  con una riga che contiene solo la parola di chiusura e i codici
-  (`Chiude ADR-040`, `Closes BKL-0042, BKL-0043`) nella descrizione della PR o
-  nel commit: «Chiude ADR-040 parte 1» o «- Parte 2: chiude ADR-040» non
+  con una riga a sé (dopo una riga vuota, o come punto elenco) che contiene
+  solo la parola di chiusura e i codici (`Chiude ADR-040`, `Closes BKL-0042,
+  BKL-0043`) nella descrizione della PR o nel commit: «Chiude ADR-040 parte 1» o «- Parte 2: chiude ADR-040» non
   chiudono. In una consegna a più parti, scrivila solo nell'ultima. Un deploy
   in produzione chiude solo se a promuoverlo è un release_owner riconosciuto
   (`github_login` / `vercel_user_id` in `members` della policy): se no lascia
