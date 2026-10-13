@@ -31,6 +31,11 @@ Esempio reale:
 5. Emesso ANCHE quando `dialog_required` si risolve e la sessione nasce al
    secondo giro di `invoke_agent`.
 6. Nessuna interpolazione di testo libero dentro la riga.
+7. Emesso ANCHE quando una risposta porta **`sessione_corretta`** (Fox, ADR-037
+   2B, server ≥ 4.77.0): l'utente ha detto che la conversazione era su un altro
+   workspace, il server ha aperto lì una sessione nuova e ha chiuso la vecchia.
+   Marcatore subito, con `id`, `code` e `tenant` della sessione corretta e lo
+   stesso `agent`: da lì vale quello, per le skill e per gli hook.
 
 ## Estrazione — una regola per tutti
 
