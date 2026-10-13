@@ -13,10 +13,11 @@ riga a formato fisso** nella conversazione (non prosa):
 <!-- agentos-session id=<uuid> code=<codice> tenant=<tenant-slug> agent=<agent-slug> -->
 ```
 
-Esempio reale:
+Esempio (l'id è finto apposta: un id vero, scritto qui, è finito nei
+transcript di chi leggeva questo file e l'hook l'ha preso per buono, BKL-0148):
 
 ```
-<!-- agentos-session id=7cfc5539-12dc-46be-91a6-54ca6b979269 code=SES-INV-1785254774980 tenant=djungle agent=set -->
+<!-- agentos-session id=00000000-0000-4000-8000-000000000000 code=SES-INV-0000000000000 tenant=djungle agent=set -->
 ```
 
 **Regole del formato — letterali, nessuna variante ammessa:**
@@ -39,8 +40,11 @@ Esempio reale:
 
 ## Estrazione — una regola per tutti
 
-**L'ultimo marcatore nel transcript vince** (una chat può contenere più
-invoke: la sessione corrente è la più recente).
+**L'ultimo marcatore nel testo dell'assistente vince** (una chat può
+contenere più invoke: la sessione corrente è la più recente). Contano solo i
+marcatori che l'assistente ha scritto nella conversazione: non quelli dentro
+l'output di un tool (un file letto, una query) né quelli nel testo incollato
+dall'utente da un'altra chat (BKL-0148, plugin 4.43.1).
 
 Regex canonica (skill / prosa):
 
@@ -52,11 +56,15 @@ Shell (hook — vedi `scripts/lib-session.sh`, che è l'unica implementazione da
 usare negli script):
 
 ```sh
-grep -oE 'agentos-session id=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' "$TRANSCRIPT" | tail -1 | cut -d= -f2
+jq -rR 'fromjson? | select((.message.role // .type) == "assistant") | .message.content
+        | if type == "string" then . elif type == "array" then (.[]? | select(.type == "text") | .text) else empty end' "$TRANSCRIPT" \
+  | grep -oE 'agentos-session id=[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}' | tail -1 | cut -d= -f2
 ```
 
 Il marcatore non contiene virgolette né backslash: sopravvive identico al
-doppio encoding del transcript JSONL.
+doppio encoding del transcript JSONL. Gli hook lo cercano solo nel testo dei
+messaggi dell'assistente; il vecchio ripiego sui transcript di prima del
+plugin 4.7 (qualunque `"session_id":"<uuid>"`) è stato tolto.
 
 ## Recupero quando il marcatore manca (ordine, senza scorciatoie)
 
