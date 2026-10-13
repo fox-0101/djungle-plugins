@@ -4,7 +4,13 @@ description: |
   Salva la sessione Agent OS e la chiude. Usa questa skill quando l'utente dice "/wb", "wb", "/writeback", "writeback", "salva e chiudi", "salva sessione", "chiudi sessione", "session log", o comunque vuole salvare e chiudere quello che è successo in una sessione con un agente. Per salvare SENZA chiudere ("salva", "/salva", il popup Salva proposto dall'agente) c'è la skill salva. È il passo WRITEBACK del flusso Agent OS (INVOKE > CHAT > WRITEBACK > EVOLVE): il server estrae i fatti dal transcript completo, poi l'utente conferma con un popup a tocco.
 ---
 
-# Writeback — salva e chiudi la sessione (v4.5.0 · plugin 4.41.0)
+# Writeback — salva e chiudi la sessione (v4.5.0 · plugin 4.43.0)
+
+> **Plugin 4.43.0 — Fox chiede dove salvare (ADR-037 2B, server ≥ 4.77.0).**
+> La memoria si scrive solo su un workspace confermato: da Fox, quando è sicuro
+> sopra la soglia approvata, o dall'utente. Se Fox non è sicuro, `scribe_digest`
+> fa una domanda prima di estrarre (Step 1.8). Per questo il digest ora viene
+> **prima** della chiusura: sommario e memory logs vanno nel workspace giusto.
 
 > **Plugin 4.41.0 — con l'utente si dice «salva» (BKL-0126).** "Writeback" e
 > "/wb" restano i nomi tecnici e i comandi validi, ma nei testi rivolti
@@ -14,16 +20,16 @@ description: |
 >
 > **Se in questa sessione si è già salvato con Salva** (`digest_turn`),
 > `scribe_digest` risponde `already_digested` e non rilegge i turni nuovi. Prima
-> dello Step 3.5 passa a `digest_turn({session_id, agent_id, transcript_delta})`
+> dello Step 1.8 passa a `digest_turn({session_id, agent_id, transcript_delta})`
 > i turni successivi all'ultimo salvataggio: il server scarta da solo quelli già
 > digeriti, quindi nel dubbio manda tutto. Poi lo Step 4 troverà il buffer vuoto
 > e lo Step 6 riporta l'esito di `digest_turn`.
 
 Close the loop on every agent session. Pipeline:
 
-1. **Close** — chiudi session con summary
-2. **Memory logs** — cross-post selettivo
-3. **Digest** — `scribe_digest` estrae i fact dal transcript completo (v4.5.0)
+1. **Digest** — `scribe_digest` estrae i fact dal transcript completo (v4.5.0), dopo l'eventuale domanda di Fox sul workspace (4.43.0)
+2. **Close** — chiudi session con summary
+3. **Memory logs** — cross-post selettivo
 4. **Review** — l'utente conferma / scarta / review puntuale
 5. **Commit** — apply tutto in transazione, audit log
 
@@ -102,7 +108,7 @@ Al `/wb` chiami `scribe_digest` passando il **transcript completo** della
 conversazione. Il server estrae i **fact** (8 tipi: stage_change, move_done,
 decision, open_loop_new/closed, reference, metric, next_action_change) con
 Haiku 4.5, applica confidence gating, e popola il buffer pending della
-session. Poi `scribe_review` lo legge e l'utente conferma. Vedi **Step 3.5-5**.
+session. Poi `scribe_review` lo legge e l'utente conferma. Vedi **Step 1.8, 4 e 5**.
 
 ## Step-by-step
 
@@ -136,39 +142,7 @@ Solo link a Claude (`https://claude.ai/…` o `claude://claude.ai/…`). Un link
 non valido il server lo scarta senza bloccare la chiusura, e lo dice in
 `chat_url: "scartato"`.
 
-### Step 2 — Close session
-
-```
-close_session({
-  session_id: "<uuid>",
-  chat_url: "<link dallo Step 1.5, se c'è — altrimenti ometti il campo>",
-  summary: "## Sommario Sessione\n[summary]\n\n## Learnings & Insight\n- ...\n\n## Decisioni Prese\n- ...\n\n## Performance\n**Rating:** Good\n[explanation]\n\n## Feedback Ricevuto\n- ...\n\n## Segnali di Evoluzione\n- ...\n\n## Stato Progetto\n- ..."
-})
-```
-
-Response: `{ok, session_id, ended_at, already_closed, chat_url}` — `chat_url` vale `salvato`, `scartato` o `assente`. Se `already_closed: true` (retry post-errore), salta scrittura memory_log se già fatti — ma procedi con Step 3-6 (lo Scribe buffer è separato).
-
-### Step 3 — Cross-post memory logs (con initiative_id v3.2.1+)
-
-Per ogni learning/decision/feedback/evolution di alto valore:
-
-```
-write_memory_log({
-  session_id: "<session_id>",                    // REQUIRED (ADR-014a) — dal marcatore
-  agent_id: "<session.agent_id>",
-  type: "learning",
-  content: "...",
-  tags: [...],
-  initiative_id: "<session.initiative_id>",       // PROPAGA SEMPRE
-  touched_initiatives: ["<other-uuid>"]           // se applicabile
-})
-```
-
-Heuristic: "voglio vedere questo prima della prossima sessione su questa iniziativa?". Se sì → memory_log. Altrimenti resta solo nel summary.
-
-> **Nota v3.2.1 fix:** `initiative_id` deve sempre essere propagato dalla session se esiste, altrimenti il record è orfano e il Probe non lo vede.
-
-### Step 3.5 — Digest del transcript (v4.5.0, OBBLIGATORIO prima del review)
+### Step 1.8 — Digest del transcript, PRIMA di chiudere (v4.5.0; plugin 4.43.0)
 
 Questo è il cuore della v4.5.0. Prima di leggere il buffer, **digerisci** il
 transcript della conversazione corrente. Costruisci l'array `transcript`
@@ -200,7 +174,61 @@ Response: `{ facts_extracted, buffer_id, facts[], skipped? }`.
   il `/wb` non si blocca. Comunica all'utente che la digestione non è
   riuscita e che può rifare `/wb`.
 
-Dopo `scribe_digest`, il buffer è popolato → procedi a Step 4.
+**Se Fox chiede dove salvare (plugin 4.43.0, server ≥ 4.77.0, ADR-037 2B).**
+La risposta ha `dialog_required`, `dialog_payload.kind === 'workspace'` e
+`skipped: "workspace_da_confermare"`: Fox non è sicuro che la conversazione
+sia sul workspace della sessione, oppure ci ha letto con sicurezza un altro
+workspace. Non è stato estratto né scritto niente. Popup con
+`dialog_payload.question` come domanda (etichetta `Workspace`) e
+`dialog_payload.tenants[]` come opzioni, **nell'ordine del server** e senza
+«(consigliato)»; poi richiama `scribe_digest` con lo **stesso** transcript e
+`workspace_confermato: <slug scelto>`. È l'unica domanda di Fox in questa
+sessione: non farne altre sul workspace.
+
+Se la risposta porta **`sessione_corretta`**, l'utente ha scelto un altro
+workspace: il server ha aperto lì una sessione nuova, ci ha estratto i fatti e
+ha chiuso la vecchia. Emetti subito il marcatore nuovo
+(`skills/_shared/session-threading.md`, regola 7) e da qui in poi usa il suo
+`session_id` per tutto: chiusura (Step 2), memory logs (Step 3), review e
+commit. Nella riga d'esito dillo: «Spostata su <workspace>».
+
+Per questo il digest viene PRIMA della chiusura e delle memory logs: sommario e
+memorie sono memoria anche loro, e vanno scritti solo dopo che il workspace è
+confermato.
+
+Dopo `scribe_digest`, il buffer è popolato → Step 2 (chiusura), Step 3, poi Step 4.
+
+### Step 2 — Close session
+
+```
+close_session({
+  session_id: "<uuid>",
+  chat_url: "<link dallo Step 1.5, se c'è — altrimenti ometti il campo>",
+  summary: "## Sommario Sessione\n[summary]\n\n## Learnings & Insight\n- ...\n\n## Decisioni Prese\n- ...\n\n## Performance\n**Rating:** Good\n[explanation]\n\n## Feedback Ricevuto\n- ...\n\n## Segnali di Evoluzione\n- ...\n\n## Stato Progetto\n- ..."
+})
+```
+
+Response: `{ok, session_id, ended_at, already_closed, chat_url}` — `chat_url` vale `salvato`, `scartato` o `assente`. Se `already_closed: true` (retry post-errore), salta scrittura memory_log se già fatti — ma procedi con Step 3-6 (lo Scribe buffer è separato).
+
+### Step 3 — Cross-post memory logs (con initiative_id v3.2.1+)
+
+Per ogni learning/decision/feedback/evolution di alto valore:
+
+```
+write_memory_log({
+  session_id: "<session_id>",                    // REQUIRED (ADR-014a) — dal marcatore
+  agent_id: "<session.agent_id>",
+  type: "learning",
+  content: "...",
+  tags: [...],
+  initiative_id: "<session.initiative_id>",       // PROPAGA SEMPRE
+  touched_initiatives: ["<other-uuid>"]           // se applicabile
+})
+```
+
+Heuristic: "voglio vedere questo prima della prossima sessione su questa iniziativa?". Se sì → memory_log. Altrimenti resta solo nel summary.
+
+> **Nota v3.2.1 fix:** `initiative_id` deve sempre essere propagato dalla session se esiste, altrimenti il record è orfano e il Probe non lo vede.
 
 ### Step 4 — Load Scribe buffer
 
@@ -319,7 +347,7 @@ Salvato: 4 in agent-os-platform e bp-djungle-holding-2026, 1 da rivedere. Sessio
 - Il summary della session è la single source of truth — accurato, non lusinghiero.
 - Cross-posting memory_log selettivo: quality over quantity.
 - **v3.2.1: SEMPRE propaga `initiative_id` ai memory_logs se la session l'aveva.** Bug evitato.
-- **v4.5.0: la cattura è server-side via `scribe_digest`.** NON aspettarti che il buffer sia già popolato all'arrivo del `/wb` — devi chiamare `scribe_digest` col transcript completo (Step 3.5) PRIMA di `scribe_review`. È questo il fix del bug "Scribe vuoto": non dipendere più dalla cattura in-prompt durante la chat.
+- **v4.5.0: la cattura è server-side via `scribe_digest`.** NON aspettarti che il buffer sia già popolato all'arrivo del `/wb` — devi chiamare `scribe_digest` col transcript completo (Step 1.8) PRIMA di `scribe_review`. È questo il fix del bug "Scribe vuoto": non dipendere più dalla cattura in-prompt durante la chat.
 - **La pipeline Scribe è il modo principale di aggiornare le SOTA.** Niente più `/sota-update` manuale dopo ogni sessione — lo fa il wb.
 - Se l'MCP server ritorna 401, OAuth scaduto: l'utente deve disconnettere/riconnettere il connettore (Customize → Plugin → Connectors → Djungle agent os). Magic-link < 1 min, no env vars in v3+.
 - Se `buffer_id` non esiste (es. sessione senza fact catturati, oppure tutti scartati con confidence=low), Step 4-5 si saltano silenziosamente.
@@ -346,6 +374,12 @@ Partono **declassati**, cioè tutto in review e niente in SOTA:
 - le sessioni meet e i client essential.
 
 Oltre i 30 giorni il buffer si chiude `expired` senza essere riversato.
+
+**Eccezione — i fatti trattenuti da Fox (plugin 4.43.0, ADR-037 2B).** Un
+buffer trattenuto perché il workspace non era confermato (`scope_da_confermare`)
+il reaper non lo finalizza: non conferma al posto dell'utente. Aspetta la
+conferma (`scribe_commit` con `workspace_confermato`, o un nuovo `/wb`), e alla
+scadenza del buffer (24 ore dall'ultimo aggiornamento) decade senza scrivere.
 
 Due conseguenze per questa skill:
 - Se l'utente torna al dialog dopo la soglia, `scribe_review` può ritornare `buffer_id: null` e `scribe_commit` `applied: 0` senza errori: il buffer è già stato finalizzato. Non dire «niente da salvare». Di' che i fatti sono già stati smistati dal server e che quelli non scritti in SOTA sono in `/review-queue`.

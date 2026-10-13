@@ -203,7 +203,10 @@ Il server non sa su quale workspace aprire la sessione e non lo indovina:
 `session_id` è vuoto e non è stato creato niente. Le opzioni sono
 `dialog_payload.tenants[]`: etichetta `<brand_emoji> <name>`, descrizione
 `<slug>` (più «default per le sessioni nuove» su quello con `is_default: true`).
-Poi richiama `invoke_agent({agent_name, tenant_slug: <slug scelto>})`.
+Poi richiama `invoke_agent({agent_name, task_input, workspace_confermato: <slug scelto>})`
+(server ≥ 4.77.0; prima era `tenant_slug`). `workspace_confermato` dice al
+server che il workspace l'ha scelto l'utente: con Fox vale come conferma per
+tutta la sessione, e al salvataggio non si richiede.
 
 Compare solo a chi ha più di un workspace. Se c'è la riga `tenant:` nel
 CLAUDE.md del progetto, **passala fin dalla prima chiamata** e la domanda non
@@ -214,6 +217,21 @@ conto dell'utente. Il tenant attivo è condiviso fra le sue chat e cambia
 sotto i piedi: è esattamente il motivo per cui il server ha smesso di
 deciderlo da solo, e tre settimane di lavoro sono finite nel posto sbagliato
 senza che nessuno se ne accorgesse.
+
+**`dialog_payload.kind === 'workspace'` (Fox, ADR-037 2B, server ≥ 4.77.0).**
+È stato indicato un workspace, ma Fox legge nel primo messaggio, con fiducia
+sopra la soglia di scrittura, un workspace diverso. Nessuna sessione creata.
+Stesso popup del tenant, con `dialog_payload.question` come domanda e
+`dialog_payload.tenants[]` come opzioni, **nell'ordine del server**: il primo è
+quello che legge Fox. Poi richiama
+`invoke_agent({agent_name, task_input, workspace_confermato: <slug scelto>})`.
+Non scegliere tu fra i due: se il dubbio fosse risolvibile senza l'utente, il
+server non avrebbe chiesto.
+
+**`scope_fox` nella risposta** (solo con Fox acceso) dice se il workspace della
+sessione è `confermato` (da Fox sopra soglia o dalla scelta dell'utente) o solo
+`proposto`. Proposto non chiede niente adesso: la domanda arriva al
+salvataggio, una volta. Non mostrarlo all'utente salvo che chieda.
 
 **Iniziativa.** Le opzioni sono `dialog_payload.options[]` (`slug`, `name`,
 `reason`). `reason` è un codice tecnico del match: in descrizione scrivilo per

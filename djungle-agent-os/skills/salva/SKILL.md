@@ -1,7 +1,7 @@
 ---
 name: salva
 description: |
-  Salva i fatti della conversazione nella memoria di Agent OS SENZA chiudere la sessione. Trigger quando l'utente dice "salva", "/salva", "salva adesso", "salvalo", o tocca "Salva tutto" / "Fammi scegliere" nel popup Salva proposto dall'agente. Per salvare E chiudere ("salva e chiudi", "/wb", "chiudi sessione") usa la skill writeback. Plugin 4.41.0+, server 4.66.1+ (BKL-0126).
+  Salva i fatti della conversazione nella memoria di Agent OS SENZA chiudere la sessione. Trigger quando l'utente dice "salva", "/salva", "salva adesso", "salvalo", o tocca "Salva tutto" / "Fammi scegliere" nel popup Salva proposto dall'agente. Per salvare E chiudere ("salva e chiudi", "/wb", "chiudi sessione") usa la skill writeback. Plugin 4.43.0+, server 4.77.0+ (BKL-0126, ADR-037 2B).
 ---
 
 # /salva — salva adesso, la sessione resta aperta (plugin 4.41.0)
@@ -33,6 +33,23 @@ tocca il popup.
 3. **Salva** con `digest_turn({session_id, agent_id, transcript_delta})`.
    Il server scarta i turni già digeriti per questa sessione: rimandarli non
    duplica niente, quindi nel dubbio manda tutto.
+
+3b. **Se Fox chiede dove salvare** (risposta con `dialog_required` e
+   `dialog_payload.kind === 'workspace'`, server ≥ 4.77.0). Fox non è sicuro
+   che la conversazione sia sul workspace della sessione: i fatti sono
+   **trattenuti** nel buffer (`buffer_id`, `in_attesa_workspace`) e non sono in
+   memoria. Popup con `dialog_payload.question` e le opzioni
+   `dialog_payload.tenants[]` nell'ordine del server, etichetta `Workspace`;
+   poi `scribe_commit({buffer_id, workspace_confermato: <slug scelto>})`.
+   - Stesso workspace della sessione → i fatti si applicano: l'esito è quello
+     di `scribe_commit` (`applied`, `initiatives_touched`).
+   - Un altro → la risposta porta `scartato` e `sessione_corretta`. Emetti il
+     marcatore nuovo (`skills/_shared/session-threading.md`, regola 7) e rifai
+     subito il passo 3 col `session_id` nuovo e **tutti** i turni della
+     conversazione: nella sessione nuova non sono mai stati digeriti, e il
+     workspace è già confermato.
+   Nessuna risposta dell'utente → niente: i fatti trattenuti decadono da soli,
+   e il prossimo «salva» rifà la domanda.
 
 4. **Esito, una riga**, con i numeri della risposta:
    `Salvato: <auto_committed> in <initiatives_touched>, <queued_for_review> da rivedere`,
