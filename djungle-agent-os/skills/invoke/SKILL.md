@@ -233,6 +233,23 @@ sessione è `confermato` (da Fox sopra soglia o dalla scelta dell'utente) o solo
 `proposto`. Proposto non chiede niente adesso: la domanda arriva al
 salvataggio, una volta. Non mostrarlo all'utente salvo che chieda.
 
+**`dialog_payload.kind === 'iniziativa'` (BKL-0149, plugin 4.44.0, server ≥ 4.78.0).**
+La sessione nascerebbe senza iniziativa, ma il messaggio ne cita una o Fox ne
+legge una nel workspace. Nessuna sessione creata. Popup con
+`dialog_payload.message` come domanda, etichetta `Iniziativa`, le opzioni di
+`dialog_payload.options[]` **nell'ordine del server** (etichetta `name`,
+descrizione `reason` · `slug`), più un'ultima opzione **«Nessuna iniziativa»**.
+Poi richiama `invoke_agent` con **gli stessi parametri** della chiamata di
+prima (task_input, tenant_slug o workspace_confermato) più:
+- l'iniziativa scelta → `iniziativa_confermata: <slug>`;
+- «Nessuna iniziativa» → `senza_iniziativa: true` (la domanda non si ripete);
+- un nome scritto in «Altro» → `initiative_input: <testo>` (lo risolve il
+  server, come sempre).
+
+È una sola domanda per sessione: il server non la fa se ha appena chiesto il
+workspace. Non scegliere tu e non saltarla: la risposta lega la sessione
+all'iniziativa (i fatti vanno nella sua SOTA) ed è un'etichetta per Fox.
+
 **Iniziativa.** Le opzioni sono `dialog_payload.options[]` (`slug`, `name`,
 `reason`). `reason` è un codice tecnico del match: in descrizione scrivilo per
 esteso — `exact_slug` «slug identico», `exact_name` «nome identico»,
