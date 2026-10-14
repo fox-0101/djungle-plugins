@@ -203,10 +203,18 @@ Il server non sa su quale workspace aprire la sessione e non lo indovina:
 `session_id` è vuoto e non è stato creato niente. Le opzioni sono
 `dialog_payload.tenants[]`: etichetta `<brand_emoji> <name>`, descrizione
 `<slug>` (più «default per le sessioni nuove» su quello con `is_default: true`).
-Poi richiama `invoke_agent({agent_name, task_input, workspace_confermato: <slug scelto>})`
+Poi richiama `invoke_agent({agent_name, task_input, workspace_confermato: <slug scelto>, domanda_id: <dialog_payload.domanda_id>})`
 (server ≥ 4.77.0; prima era `tenant_slug`). `workspace_confermato` dice al
 server che il workspace l'ha scelto l'utente: con Fox vale come conferma per
 tutta la sessione, e al salvataggio non si richiede.
+
+**Il gettone (plugin 4.45.0, server ≥ 4.80.0, BKL-0155).** Ogni domanda di
+Fox porta `dialog_payload.domanda_id`. Rimandalo **sempre** come `domanda_id`
+insieme alla risposta dell'utente: senza, il server usa la scelta ma la
+considera tua, non dell'utente, e chiederà di nuovo al salvataggio. Non
+passare mai `workspace_confermato`, `iniziativa_confermata` o
+`senza_iniziativa` se l'utente non ha risposto a una domanda: è proprio
+quello che il gettone serve a riconoscere.
 
 Compare solo a chi ha più di un workspace. Se c'è la riga `tenant:` nel
 CLAUDE.md del progetto, **passala fin dalla prima chiamata** e la domanda non
@@ -224,7 +232,7 @@ sopra la soglia di scrittura, un workspace diverso. Nessuna sessione creata.
 Stesso popup del tenant, con `dialog_payload.question` come domanda e
 `dialog_payload.tenants[]` come opzioni, **nell'ordine del server**: il primo è
 quello che legge Fox. Poi richiama
-`invoke_agent({agent_name, task_input, workspace_confermato: <slug scelto>})`.
+`invoke_agent({agent_name, task_input, workspace_confermato: <slug scelto>, domanda_id: <dialog_payload.domanda_id>})`.
 Non scegliere tu fra i due: se il dubbio fosse risolvibile senza l'utente, il
 server non avrebbe chiesto.
 
@@ -240,7 +248,8 @@ legge una nel workspace. Nessuna sessione creata. Popup con
 `dialog_payload.options[]` **nell'ordine del server** (etichetta `name`,
 descrizione `reason` · `slug`), più un'ultima opzione **«Nessuna iniziativa»**.
 Poi richiama `invoke_agent` con **gli stessi parametri** della chiamata di
-prima (task_input, tenant_slug o workspace_confermato) più:
+prima (task_input, tenant_slug o workspace_confermato) più
+`domanda_id: <dialog_payload.domanda_id>` e:
 - l'iniziativa scelta → `iniziativa_confermata: <slug>`;
 - «Nessuna iniziativa» → `senza_iniziativa: true` (la domanda non si ripete);
 - un nome scritto in «Altro» → `initiative_input: <testo>` (lo risolve il
