@@ -40,7 +40,9 @@ tocca il popup.
    **trattenuti** nel buffer (`buffer_id`, `in_attesa_workspace`) e non sono in
    memoria. Popup con `dialog_payload.question` e le opzioni
    `dialog_payload.tenants[]` nell'ordine del server, etichetta `Workspace`;
-   poi `scribe_commit({buffer_id, workspace_confermato: <slug scelto>})`.
+   poi `scribe_commit({buffer_id, workspace_confermato: <slug scelto>, domanda_id: <dialog_payload.domanda_id>})`.
+   Senza `domanda_id` (server ≥ 4.80.0) la scelta non vale come risposta
+   dell'utente e la domanda torna.
    - Stesso workspace della sessione → i fatti si applicano: l'esito è quello
      di `scribe_commit` (`applied`, `initiatives_touched`).
    - Un altro → la risposta porta `scartato` e `sessione_corretta`. Emetti il
