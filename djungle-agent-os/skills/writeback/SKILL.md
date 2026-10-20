@@ -181,9 +181,11 @@ sia sul workspace della sessione, oppure ci ha letto con sicurezza un altro
 workspace. Non è stato estratto né scritto niente. Popup con
 `dialog_payload.question` come domanda (etichetta `Workspace`) e
 `dialog_payload.tenants[]` come opzioni, **nell'ordine del server** e senza
-«(consigliato)»; poi richiama `scribe_digest` con lo **stesso** transcript e
-`workspace_confermato: <slug scelto>`. È l'unica domanda di Fox in questa
-sessione: non farne altre sul workspace.
+«(consigliato)»; poi richiama `scribe_digest` con lo **stesso** transcript,
+`workspace_confermato: <slug scelto>` e `domanda_id: <dialog_payload.domanda_id>`.
+Senza `domanda_id` (server ≥ 4.80.0, BKL-0155) la risposta non vale come
+scelta dell'utente: il server rifà la domanda e non scrive niente. È l'unica
+domanda di Fox in questa sessione: non farne altre sul workspace.
 
 Se la risposta porta **`sessione_corretta`**, l'utente ha scelto un altro
 workspace: il server ha aperto lì una sessione nuova, ci ha estratto i fatti e
@@ -378,7 +380,7 @@ Oltre i 30 giorni il buffer si chiude `expired` senza essere riversato.
 **Eccezione — i fatti trattenuti da Fox (plugin 4.43.0, ADR-037 2B).** Un
 buffer trattenuto perché il workspace non era confermato (`scope_da_confermare`)
 il reaper non lo finalizza: non conferma al posto dell'utente. Aspetta la
-conferma (`scribe_commit` con `workspace_confermato`, o un nuovo `/wb`), e alla
+conferma (`scribe_commit` con `workspace_confermato` e `domanda_id`, o un nuovo `/wb`), e alla
 scadenza del buffer (24 ore dall'ultimo aggiornamento) decade senza scrivere.
 
 Due conseguenze per questa skill:
