@@ -57,6 +57,11 @@ tocca il popup.
    `Salvato: <auto_committed> in <initiatives_touched>, <queued_for_review> da rivedere`,
    più `<memorized_to_agent> nella memoria di <agente>` se > 0.
    - `skipped: "already_digested"` → «Era già salvato.»
+   - `skipped: "extract_failed"` con `motivo` (server ≥ 4.83.0, BKL-0166) →
+     riporta il `motivo` in una riga. Se `causa` è `credito_esaurito`, `chiave_rifiutata` o `servizio_sospeso`
+     l'estrazione è ferma per tutti: **non** proporre «salva e chiudi», che
+     fallirebbe uguale, e non aggiungere dettagli al motivo. Con le altre
+     cause proponi «salva e chiudi» (`/wb`) se il motivo dice che riprovare basta.
    - `skipped` di altro tipo, o un errore → dillo in una riga e proponi
      «salva e chiudi» (`/wb`), che rilegge il transcript intero.
 

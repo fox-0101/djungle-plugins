@@ -29,6 +29,7 @@ Use **`invoke_agent`** as a single atomic call. **Do NOT decompose** into `get_a
 - **`dialog_required`** — true if a user choice is needed: quale workspace (`kind: 'tenant'`, ADR-029) oppure quale iniziativa (ambiguous match o classifier hit). When set, `session_id` is empty — DO NOT yet adopt the agent identity, ask the user first and re-call invoke_agent with the confirmed slug.
 - **`pending_scribe_buffers`** (v3.3.0+) — buffer Scribe ancora pending dell'utente (escluso il buffer della session appena creata). Se non vuoto, vedi Step 3.7 — recovery dialog prima di partire col task.
 - **`cattura_per_turno`** (server ≥ 4.65.0, BKL-0116) — se la cattura per turno (hook Stop del plugin) arriva davvero: `stato` `attiva` | `parziale` | `spenta`, con `rimedio` quando non è attiva. Assente se le sessioni recenti sono troppo poche per giudicare. Vedi Step 3.8.
+- **`estrazione_ferma`** (server ≥ 4.83.0, BKL-0166/0167) — l'estrazione dei fatti è ferma per tutti: `{causa, dal, motivo}`. Assente quando funziona. Vedi Step 3.9.
 
 
 > **Marcatore di sessione (ADR-014b, v4.7.0 — OBBLIGATORIO).** Subito dopo ogni
@@ -149,6 +150,11 @@ close_and_digest({
   N fatti, M auto-applicati, K in coda review" — più ", J in memoria" se
   `memorized_to_agent` c'è.
 - **Idempotente**: se la sessione era già stata chiusa (es. con `/wb`), è un no-op.
+- Se la risposta ha `digest_skipped_reason: "extract_failed"` (server ≥ 4.83.0),
+  la sessione è chiusa ma i fatti non sono stati estratti: invece della riga coi
+  numeri mostra `motivo` in una riga. Non riprovare se `causa` è
+  `credito_esaurito`, `chiave_rifiutata` o `servizio_sospeso`: l'estrazione è ferma per tutti e la prossima
+  chiamata fallirebbe allo stesso modo.
 
 Se è la prima invoke della chat (nessuna sessione precedente), salta questo step.
 Nota: dal server 4.64.0 (BKL-0116) l'invoke chiude da sé solo le sessioni chat
@@ -332,6 +338,18 @@ Se `result.cattura_per_turno.stato` è `spenta` o `parziale`, mostra **una riga*
 Una volta per chat, non a ogni invoke della stessa chat. Non bloccare il task e non chiedere niente: è un'informazione. Con `attiva` o senza il campo, non dire nulla.
 
 Perché esiste: la cattura per turno arriva solo dalla scheda Code (verificato il 05/10: in Cowork l'hook non produce chiamate; in Chat e su claude.ai web gli hook non esistono). Il 02/10 si è scoperto che in 30 giorni aveva catturato 2 turni, e nessuno se n'era accorto. Non suggerire di «incollare la chiave»: in Cowork non basta.
+
+### 3.9. Avviso sull'estrazione ferma (server ≥ 4.83.0, BKL-0166/0167)
+
+Se `result.estrazione_ferma` c'è, l'API del modello rifiuta le chiamate del server: niente di quello che si dice in questa chat finirà in memoria da solo, né col salvataggio né con la cattura per turno. Mostra **una riga** all'inizio della risposta, prima del task, col `motivo` riassunto, per esempio:
+
+```
+⚠️ La memoria automatica è ferma per un problema del servizio: i fatti di questa chat non verranno salvati finché non torna.
+```
+
+Riassumi il `motivo` senza aggiungere niente: a chi non è super admin il server manda `causa: "servizio_sospeso"` e un motivo neutro di proposito, e non va arricchito con supposizioni (credito, chiavi, fatturazione). Una volta per chat; non bloccare il task e non chiedere niente. Se l'utente dice «salva», la skill salva dirà il motivo da sé: non proporre di riprovare finché l'avviso c'è. Senza il campo, non dire nulla: il campo sparisce da solo alla prima chiamata riuscita.
+
+Perché esiste: dal 06/11 al 10/11 l'API ha rifiutato ogni chiamata del server per credito esaurito, e l'unico segnale era `extract_failed` nelle risposte del salvataggio. Due agenti hanno aperto item di backlog per cercare un bug che non c'era.
 
 **`promemoria_wb`** (server ≥ 4.66.0, testo «salva» da 4.66.1). Qualunque tool chiamato col `session_id` può tornare con un campo `promemoria_wb`: la sessione è aperta da più di 45 minuti e non è stata salvata. Se il prompt dell'agente ha il modulo MOD-salva, è il segnale per proporre il popup Salva come dice il modulo. Altrimenti riportalo all'utente in una riga («Quando chiudiamo, di' "salva" e salvo la sessione»), senza interrompere il lavoro. Il server lo manda al massimo ogni due ore.
 
