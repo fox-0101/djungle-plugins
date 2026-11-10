@@ -170,9 +170,16 @@ Response: `{ facts_extracted, buffer_id, facts[], skipped? }`.
 - Il server estrae, applica confidence gating (scarta `low`), e popola il
   buffer pending. È **idempotente**: se la session è già digerita
   (`skipped: "already_digested"`), ritorna il buffer esistente.
-- Se `skipped: "digest_failed"` (timeout Haiku, ecc.): procedi comunque —
-  il `/wb` non si blocca. Comunica all'utente che la digestione non è
-  riuscita e che può rifare `/wb`.
+- Se `skipped: "digest_failed"`: procedi comunque — il `/wb` non si blocca.
+  Dal server 4.83.0 (BKL-0167) la risposta porta `causa` e `motivo`: riporta
+  il `motivo` all'utente in una riga, così com'è.
+  - `causa` `credito_esaurito`, `chiave_rifiutata` o `servizio_sospeso` → l'estrazione è ferma per
+    tutti: **non** proporre di rifare `/wb`, fallirebbe uguale. Il motivo
+    neutro (`servizio_sospeso`) è voluto: non aggiungere dettagli.
+  - Ogni altra causa (timeout, risposta troncata, errore temporaneo) → il
+    motivo dice se riprovare basta: se sì, proponi di rifare `/wb`.
+  - Senza `motivo` (server più vecchio): di' che la digestione non è
+    riuscita e che può rifare `/wb`.
 
 **Se Fox chiede dove salvare (plugin 4.43.0, server ≥ 4.77.0, ADR-037 2B).**
 La risposta ha `dialog_required`, `dialog_payload.kind === 'workspace'` e
