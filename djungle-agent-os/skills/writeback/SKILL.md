@@ -6,7 +6,7 @@ description: |
 
 # Writeback — salva e chiudi la sessione (v4.5.0 · plugin 4.47.0)
 
-> **Plugin 4.47.0 — i documenti della sessione nel popup (ADR-047, server ≥ 4.89.0).**
+> **Plugin 4.47.0 — i documenti della sessione nel popup (ADR-047, server ≥ 4.90.0).**
 > Un documento consegnato in sessione e registrato con `save_document` nasce
 > **da confermare**. `scribe_review` li restituisce in `documents_da_confermare`
 > e lo Step 5 li mette nello stesso popup dei fatti. Quelli che la persona
@@ -274,7 +274,7 @@ Response shape:
 }
 ```
 
-Dal server 4.89.0 la risposta può portare anche `documents_da_confermare`
+Dal server 4.90.0 la risposta può portare anche `documents_da_confermare`
 (ADR-047): `[{code, title, type, url, status}]`, i documenti consegnati nella
 sessione che la persona non ha ancora tenuto. Arriva anche quando non ci sono
 fatti.

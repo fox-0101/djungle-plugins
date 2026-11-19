@@ -42,7 +42,7 @@ Ask the user (or extract from context):
 - **`priority`**: `low` | `normal` (default) | `high` | `urgent` — chiedi se non ovvio
 - **`expires_in_days`** (opzionale) — se time-sensitive, suggerisci 7 e conferma
 
-- **`documents`** (opzionale, plugin 4.47.0, server ≥ 4.89.0, ADR-047) — i codici `DOC-NNNN` dei documenti che il destinatario deve avere. Se nella sessione hai consegnato documenti (`get_document({session_id})` li elenca) e l'handoff li riguarda, proponili: chi riceve li vede con titolo e link, senza cercarli. Non incollare il link nel `body` al posto del codice: il puntamento nel body non segue il documento se viene archiviato.
+- **`documents`** (opzionale, plugin 4.47.0, server ≥ 4.90.0, ADR-047) — i codici `DOC-NNNN` dei documenti che il destinatario deve avere. Se nella sessione hai consegnato documenti (`get_document({session_id})` li elenca) e l'handoff li riguarda, proponili: chi riceve li vede con titolo e link, senza cercarli. Non incollare il link nel `body` al posto del codice: il puntamento nel body non segue il documento se viene archiviato.
 
 If the user gave only a high-level instruction ("manda un brief a Lora sul pricing"), draft `topic` + `body` yourself, then **show to user** for confirmation before submitting.
 
@@ -79,7 +79,7 @@ create_handoff({
 > non potrebbe aprirlo.
 
 Response include:
-- `documents` (server ≥ 4.89.0) — i documenti legati, con `code`, `title`, `type`, `url`. Sono già nel `mirror_content`, nel blocco `## Documenti`.
+- `documents` (server ≥ 4.90.0) — i documenti legati, con `code`, `title`, `type`, `url`. Sono già nel `mirror_content`, nel blocco `## Documenti`.
 - `id`, `code` (es. `HND-0042`)
 - `file_path` (es. `handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md`) — **path RELATIVO**
 - `content_hash` (sha256)

@@ -1,7 +1,7 @@
 ---
 name: salva
 description: |
-  Salva i fatti della conversazione nella memoria di Agent OS SENZA chiudere la sessione. Trigger quando l'utente dice "salva", "/salva", "salva adesso", "salvalo", o tocca "Salva tutto" / "Fammi scegliere" nel popup Salva proposto dall'agente. Per salvare E chiudere ("salva e chiudi", "/wb", "chiudi sessione") usa la skill writeback. Salva anche i documenti consegnati nella sessione (ADR-047). Plugin 4.47.0+, server 4.89.0+ per i documenti.
+  Salva i fatti della conversazione nella memoria di Agent OS SENZA chiudere la sessione. Trigger quando l'utente dice "salva", "/salva", "salva adesso", "salvalo", o tocca "Salva tutto" / "Fammi scegliere" nel popup Salva proposto dall'agente. Per salvare E chiudere ("salva e chiudi", "/wb", "chiudi sessione") usa la skill writeback. Salva anche i documenti consegnati nella sessione (ADR-047). Plugin 4.47.0+, server 4.90.0+ per i documenti.
 ---
 
 # /salva — salva adesso, la sessione resta aperta (plugin 4.41.0)
@@ -23,7 +23,7 @@ tocca il popup.
    dalla sessione (es. `AGT-8`). Senza marcatore: «nessuna sessione attiva:
    apri con `/invoke <agente>` e ripeti». Niente salvataggi senza sessione.
 
-1b. **Documenti della sessione (plugin 4.47.0, server ≥ 4.89.0, ADR-047).**
+1b. **Documenti della sessione (plugin 4.47.0, server ≥ 4.90.0, ADR-047).**
    Un documento consegnato alla persona (un report, una proposta, una pagina
    HTML, un deck) si registra **alla consegna**, non qui: file su Drive col
    connettore Drive del client, poi `save_document({session_id, title, drive_url})`.
