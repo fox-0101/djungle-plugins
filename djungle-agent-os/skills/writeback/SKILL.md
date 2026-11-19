@@ -4,7 +4,14 @@ description: |
   Salva la sessione Agent OS e la chiude. Usa questa skill quando l'utente dice "/wb", "wb", "/writeback", "writeback", "salva e chiudi", "salva sessione", "chiudi sessione", "session log", o comunque vuole salvare e chiudere quello che è successo in una sessione con un agente. Per salvare SENZA chiudere ("salva", "/salva", il popup Salva proposto dall'agente) c'è la skill salva. È il passo WRITEBACK del flusso Agent OS (INVOKE > CHAT > WRITEBACK > EVOLVE): il server estrae i fatti dal transcript completo, poi l'utente conferma con un popup a tocco.
 ---
 
-# Writeback — salva e chiudi la sessione (v4.5.0 · plugin 4.43.0)
+# Writeback — salva e chiudi la sessione (v4.5.0 · plugin 4.47.0)
+
+> **Plugin 4.47.0 — i documenti della sessione nel popup (ADR-047, server ≥ 4.89.0).**
+> Un documento consegnato in sessione e registrato con `save_document` nasce
+> **da confermare**. `scribe_review` li restituisce in `documents_da_confermare`
+> e lo Step 5 li mette nello stesso popup dei fatti. Quelli che la persona
+> tiene si confermano con `save_document({session_id, code, confirmed: true})`:
+> solo da lì si legano all'iniziativa e viaggiano con handoff e ripresa.
 
 > **Plugin 4.43.0 — Fox chiede dove salvare (ADR-037 2B, server ≥ 4.77.0).**
 > La memoria si scrive solo su un workspace confermato: da Fox, quando è sicuro
@@ -267,7 +274,13 @@ Response shape:
 }
 ```
 
-Se `buffer_id === null` o `facts.length === 0`: niente fact catturati, salta a Step 6.
+Dal server 4.89.0 la risposta può portare anche `documents_da_confermare`
+(ADR-047): `[{code, title, type, url, status}]`, i documenti consegnati nella
+sessione che la persona non ha ancora tenuto. Arriva anche quando non ci sono
+fatti.
+
+Se `buffer_id === null` o `facts.length === 0`: niente fact catturati. Senza
+`documents_da_confermare` salta a Step 6; con, fai lo Step 5 per i soli documenti.
 
 ### Step 5 — Conferma con un tocco (plugin 4.41.0)
 
@@ -295,6 +308,21 @@ poche righe, così la descrizione delle opzioni resta corta:
 
 **Senza strumento di domanda** (dove il client non lo offre), stessa scelta a
 testo: `Salva tutto (N) / Fammi scegliere / Non salvare`.
+
+**Documenti (plugin 4.47.0, ADR-047).** Se `scribe_review` ha restituito
+`documents_da_confermare`, entrano nello stesso popup, accanto ai fatti:
+- N conta fatti e documenti insieme; nella descrizione di «Salva tutto» i
+  documenti vanno dopo i fatti, come «Documento: <titolo>».
+- In «Fammi scegliere» ogni documento ha la sua casella: label «Documento:
+  <titolo>», descrizione il codice e il tipo (`DOC-0003 · html`).
+- Per ogni documento tenuto: `save_document({session_id, code, confirmed: true})`.
+  «Salva tutto» li tiene tutti, «Non salvare» nessuno.
+- Solo documenti e nessun fatto: stesso popup, domanda «Tengo i documenti di
+  questa sessione?», e `scribe_commit` non si chiama.
+Un documento non tenuto resta da confermare: non si archivia e non viaggia.
+Se Fox ha spostato la sessione su un altro workspace (`sessione_corretta`), i
+documenti restano in quello in cui sono nati: dillo in una riga, non provare a
+confermarli dalla sessione nuova.
 
 Se `groups[i].resolved === false` (slug non match nel registry):
 - non rifiutarlo silenziosamente
@@ -345,6 +373,8 @@ Salvato: 4 in agent-os-platform e bp-djungle-holding-2026, 1 da rivedere. Sessio
 
 - Aggiungi "N nella memoria di <agente>" se `memorized_to_agent > 0`, e "M
   scartati" se l'utente ne ha tolti con "Fammi scegliere".
+- Con documenti confermati: "Documenti: DOC-0003 «<titolo>»", e "(senza
+  iniziativa)" se la risposta di `save_document` ha `initiative_slug: null`.
 - Se ci sono errori di commit, elencali sotto (`fact_index` e messaggio).
 - Summary, rating e memory_logs non vanno in questa riga: se servono, una
   riga sotto ("3 memorie scritte, linkate ad agent-os-platform").
@@ -365,6 +395,7 @@ Salvato: 4 in agent-os-platform e bp-djungle-holding-2026, 1 da rivedere. Sessio
 
 - ❌ Non popola `what_it_is` automaticamente — è una decisione semantica del CEO/agente in chat dialogica.
 - ❌ Non crea iniziative nuove — quello è compito di `/initiative create` o del Resolver+Classifier in `invoke_agent`.
+- ❌ Non registra documenti: `save_document` si chiama alla consegna, durante la chat. Qui si confermano quelli già registrati.
 - ❌ Non chiude handoff pending — quello succede durante la chat con `acknowledge_handoff(status='consumed', notes)`.
 - ❌ Non sostituisce un `/sota-update` esplicito — è un complemento per i delta automatici.
 - ❌ Non auto-applica i delta Scribe senza review utente **finché il /wb è in corso**. Confidence=low già scartato server-side. Se però il /wb si interrompe prima di `scribe_commit` o `scribe_reject`, il buffer non resta sospeso: lo finalizza il server (vedi «Edge case — /wb interrotto»).
