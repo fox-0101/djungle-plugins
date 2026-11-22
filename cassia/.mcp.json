@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "cassia": {
+      "type": "http",
+      "url": "https://ngffwuxmttlgnipzplxs.supabase.co/functions/v1/cassia",
+      "oauth": {
+        "scopes": "mcp"
+      }
+    }
+  }
+}
