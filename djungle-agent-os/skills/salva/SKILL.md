@@ -25,8 +25,20 @@ tocca il popup.
 
 1b. **Documenti della sessione (plugin 4.47.0, server ≥ 4.90.0, ADR-047).**
    Un documento consegnato alla persona (un report, una proposta, una pagina
-   HTML, un deck) si registra **alla consegna**, non qui: file su Drive col
-   connettore Drive del client, poi `save_document({session_id, title, drive_url})`.
+   HTML, un deck) si registra **alla consegna**, non qui. Due strade
+   (plugin 4.48.0, server ≥ 4.91.0):
+   - **testo** (HTML, markdown, testo semplice):
+     `save_document({session_id, title, content, type})`. Lo carica il server
+     nel Drive collegato al workspace: non serve un connettore Drive.
+   - **binari** (PDF, pptx, xlsx), sessioni personali, o se il server risponde
+     che Drive non è collegato o abilitato: file su Drive col connettore Drive
+     del client, poi `save_document({session_id, title, drive_url})`. Senza
+     connettore, riporta alla persona il motivo che il server dà (chi deve
+     collegare Drive, e dove) e consegna il documento in chat come sempre.
+   Per aggiornare un documento già caricato dal server:
+   `save_document({session_id, code, content, expected_version})` con la
+   `version` letta da `get_document`. Se la risposta è un conflitto, un altro
+   client l'ha cambiato: rileggi, non riprovare alla cieca.
    Il server gli dà un codice `DOC-NNNN` e lo tiene **da confermare**.
    Al salvataggio la persona decide quali tenere:
    - `get_document({session_id})` elenca i documenti della sessione. Quelli con

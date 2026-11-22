@@ -25,9 +25,9 @@ Puoi anche chiederlo tu:
 - "salva e chiudi" o "/wb": salva e chiude la sessione
 
 ### Documenti
-Quando un agente ti consegna un documento (un report, una proposta, una pagina) lo carica sul tuo Google Drive e lo registra in Agent OS con un codice, per esempio `DOC-0003`. Al salvataggio il popup te lo mostra accanto ai fatti: quelli che tieni si legano all'iniziativa e viaggiano con gli handoff e con la ripresa della sessione, anche da un altro client. Il file resta su Drive: Agent OS ne tiene solo il link.
+Quando un agente ti consegna un documento (un report, una proposta, una pagina) Agent OS lo carica sul Google Drive del workspace e lo registra con un codice, per esempio `DOC-0003`. Al salvataggio il popup te lo mostra accanto ai fatti: quelli che tieni si legano all'iniziativa e viaggiano con gli handoff e con la ripresa della sessione, anche da un altro client. Il file resta su Drive: Agent OS ne tiene il link e lo rilegge da lì quando serve.
 
-Serve il connettore Google Drive attivo nel tuo client.
+Un owner del workspace collega Drive una volta, dal portal (Impostazioni → Google Drive). Dove Drive non è collegato, e per PDF, presentazioni e fogli di calcolo, serve il connettore Google Drive attivo nel tuo client.
 
 ## Setup (zero terminale)
 
