@@ -1,11 +1,21 @@
 {
   "name": "cassia",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Cassia: controllo di gestione agentico del gruppo Djungle, regia FNX. Saldi e movimenti bancari, carte Visa Business, contratti e trattative, letti da un registro unico aggiornato in automatico. /cassa dice quanta cassa c'è e cosa esce nelle prossime settimane, /contratti mostra vigenti e trattative con i canoni netti, /spese scompone le uscite per voce. Login con l'account Agent OS: vede i dati solo chi è membro del tenant collegato; l'owner può correggere le categorie, i membri leggono. Nessun accesso dispositivo alle banche.",
   "icon": "./icon.png",
-  "author": { "name": "Djungle", "url": "https://djungle.io" },
+  "author": {
+    "name": "Djungle",
+    "url": "https://djungle.io"
+  },
   "homepage": "https://agents.djungle.io",
   "repository": "https://github.com/fox-0101/djungle-plugins",
   "license": "UNLICENSED",
-  "keywords": ["cassia", "controllo di gestione", "cassa", "finanza", "djungle", "mcp"]
+  "keywords": [
+    "cassia",
+    "controllo di gestione",
+    "cassa",
+    "finanza",
+    "djungle",
+    "mcp"
+  ]
 }
