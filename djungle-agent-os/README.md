@@ -24,6 +24,11 @@ Puoi anche chiederlo tu:
 - "salva" o "/salva": salva adesso e continua
 - "salva e chiudi" o "/wb": salva e chiude la sessione
 
+### Documenti
+Quando un agente ti consegna un documento (un report, una proposta, una pagina) lo carica sul tuo Google Drive e lo registra in Agent OS con un codice, per esempio `DOC-0003`. Al salvataggio il popup te lo mostra accanto ai fatti: quelli che tieni si legano all'iniziativa e viaggiano con gli handoff e con la ripresa della sessione, anche da un altro client. Il file resta su Drive: Agent OS ne tiene solo il link.
+
+Serve il connettore Google Drive attivo nel tuo client.
+
 ## Setup (zero terminale)
 
 1. **Installa il plugin** dal marketplace `fox-0101/djungle-plugins` su Claude Desktop / Cowork.

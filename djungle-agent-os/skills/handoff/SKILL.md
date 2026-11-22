@@ -1,7 +1,7 @@
 ---
 name: handoff
 description: |
-  Create an explicit inter-agent handoff in the Djungle Agent OS. Trigger this skill when the user says "/handoff", "passa a [agent]", "manda un brief a [agent]", "crea un handoff per [agent]", "/handoff [agent]", or any variation of explicitly forwarding context to another agent. This skill calls `create_handoff` MCP tool, persists the handoff in the tenant DB, and writes a markdown mirror to the local filesystem when available. v3.2.2: forza from_agent = session.agent_id (no più "scelta narrativa"), propaga session_id + initiative_id automaticamente, hard-guard sul path mirror.
+  Create an explicit inter-agent handoff in the Djungle Agent OS. Trigger this skill when the user says "/handoff", "passa a [agent]", "manda un brief a [agent]", "crea un handoff per [agent]", "/handoff [agent]", or any variation of explicitly forwarding context to another agent. This skill calls `create_handoff` MCP tool, persists the handoff in the tenant DB, and writes a markdown mirror to the local filesystem when available. v3.2.2: forza from_agent = session.agent_id (no più "scelta narrativa"), propaga session_id + initiative_id automaticamente, hard-guard sul path mirror. Plugin 4.47.0: l'handoff porta i documenti della sessione (DOC-NNNN, ADR-047).
 ---
 
 # Handoff — Inter-agent message (v3.2.2)
@@ -42,6 +42,8 @@ Ask the user (or extract from context):
 - **`priority`**: `low` | `normal` (default) | `high` | `urgent` — chiedi se non ovvio
 - **`expires_in_days`** (opzionale) — se time-sensitive, suggerisci 7 e conferma
 
+- **`documents`** (opzionale, plugin 4.47.0, server ≥ 4.90.0, ADR-047) — i codici `DOC-NNNN` dei documenti che il destinatario deve avere. Se nella sessione hai consegnato documenti (`get_document({session_id})` li elenca) e l'handoff li riguarda, proponili: chi riceve li vede con titolo e link, senza cercarli. Non incollare il link nel `body` al posto del codice: il puntamento nel body non segue il documento se viene archiviato.
+
 If the user gave only a high-level instruction ("manda un brief a Lora sul pricing"), draft `topic` + `body` yourself, then **show to user** for confirmation before submitting.
 
 ### 4. Call `create_handoff` — PARAMETRI FORZATI v3.2.2
@@ -55,7 +57,8 @@ create_handoff({
   priority: "high",
   session_id: "<session.id>",                // FORZATO se sessione attiva
   initiative_slug: "<resolved-slug>",        // FORZATO se session.initiative_id
-  expires_in_days: 7
+  expires_in_days: 7,
+  documents: ["DOC-0003"]                    // opzionale — solo documenti confermati
 })
 ```
 
@@ -67,7 +70,16 @@ create_handoff({
 >
 > **`initiative_slug` è SEMPRE valorizzato** se `session.initiative_id` non è null. Il server fa il lookup slug da uuid. Senza initiative_slug il Probe non vede l'handoff in `recent_handoffs` dell'iniziativa — knowledge persa per quella iniziativa.
 
+> **`documents` porta solo documenti confermati dalla persona** (ADR-047). Se
+> il server risponde che un DOC «non è ancora confermato», non aggirarlo
+> togliendo il documento: chiedi alla persona se lo tiene («Passo anche
+> <titolo>?»). Se sì, `save_document({session_id, code, confirmed: true})` e
+> ripeti `create_handoff`. La richiesta esplicita «passagli il documento» vale
+> come sì. Un documento nato in una sessione personale non parte: chi riceve
+> non potrebbe aprirlo.
+
 Response include:
+- `documents` (server ≥ 4.90.0) — i documenti legati, con `code`, `title`, `type`, `url`. Sono già nel `mirror_content`, nel blocco `## Documenti`.
 - `id`, `code` (es. `HND-0042`)
 - `file_path` (es. `handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md`) — **path RELATIVO**
 - `content_hash` (sha256)
@@ -146,6 +158,7 @@ Handoff HND-0042 creato.
   Da Vince (AGT-3) → a Lora (AGT-2) · priority high · expires 19/05/2026
   Linked a session SES-INV-... e initiative bp-djungle-holding-2026.
   Topic: Brief copy investor pitch
+  Documenti: DOC-0003 «Proposta Rentable» (solo se l'handoff ne porta)
   Mirror: ~/Documents/Claude/djungle-context/handoffs/2026-05-12-1430-agt3-to-agt2-investor-pitch.md ✓
   Lora lo riceverà in pending_handoffs[] alla prossima /invoke lora.
 
