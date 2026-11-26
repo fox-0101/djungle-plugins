@@ -1,0 +1,14 @@
+{
+  "name": "cassia-demo",
+  "version": "0.1.0",
+  "description": "Cassia in prova, su un'azienda inventata (Strade Bianche Esperienze srl, tour operator a Siena): parli con il controllo di gestione agentico e gli chiedi qualsiasi cosa su cassa, incassi in ritardo, fatture, margini per commessa, costi e decisioni da prendere. Dati fittizi, nessun login, sola lettura. Per i dati veri della tua azienda c'è il plugin cassia.",
+  "icon": "./icon.png",
+  "author": {
+    "name": "Djungle",
+    "url": "https://djungle.io"
+  },
+  "homepage": "https://agents.djungle.io",
+  "repository": "https://github.com/fox-0101/djungle-plugins",
+  "license": "UNLICENSED",
+  "keywords": ["cassia", "demo", "controllo di gestione", "cassa", "finanza", "djungle", "mcp"]
+}

@@ -40,6 +40,25 @@
         "djungle",
         "mcp"
       ]
+    },
+    {
+      "name": "cassia-demo",
+      "source": "./cassia-demo",
+      "description": "Cassia in prova, su un'azienda inventata (Strade Bianche Esperienze srl, tour operator a Siena): parli con il controllo di gestione agentico e gli chiedi qualsiasi cosa su cassa, incassi in ritardo, fatture, margini per commessa, costi e decisioni da prendere. Dati fittizi, nessun login, sola lettura. Per i dati veri della tua azienda c'è il plugin cassia.",
+      "version": "0.1.0",
+      "icon": "./cassia-demo/icon.png",
+      "author": {
+        "name": "Djungle"
+      },
+      "keywords": [
+        "cassia",
+        "demo",
+        "controllo di gestione",
+        "cassa",
+        "finanza",
+        "djungle",
+        "mcp"
+      ]
     }
   ]
 }

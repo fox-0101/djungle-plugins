@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "cassia-demo": {
+      "type": "http",
+      "url": "https://ngffwuxmttlgnipzplxs.supabase.co/functions/v1/cassia-demo"
+    }
+  }
+}
